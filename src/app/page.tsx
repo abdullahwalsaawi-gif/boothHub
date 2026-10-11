@@ -4,6 +4,8 @@ import Footer from "@/components/Footer";
 import { ArrowLeft, Calendar, MapPin, Store, LayoutDashboard, MousePointerClick, BarChart3, Sparkles } from "lucide-react";
 import { getExhibitions } from "@/app/actions/exhibitions";
 
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const exhibitions = await getExhibitions();
   const featuredExhibitions = exhibitions.slice(0, 3);

@@ -197,27 +197,68 @@ ON public.profiles FOR UPDATE USING (auth.uid() = id);
 CREATE POLICY "Organizations are viewable by everyone" 
 ON public.organizations FOR SELECT USING (true);
 
+-- ========================================================
+-- RLS Helper Functions (SECURITY DEFINER to prevent recursion)
+-- ========================================================
+CREATE OR REPLACE FUNCTION public.is_organization_member(org_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = org_id
+      AND om.user_id = auth.uid()
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_organization_admin(org_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.organization_members om
+    WHERE om.organization_id = org_id
+      AND om.user_id = auth.uid()
+      AND om.role IN ('owner', 'admin')
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_exhibition_organizer(exh_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.exhibitions e
+    JOIN public.organization_members om ON e.organization_id = om.organization_id
+    WHERE e.id = exh_id
+      AND om.user_id = auth.uid()
+  );
+$$;
+
 CREATE POLICY "Members can update their organization" 
 ON public.organizations FOR UPDATE USING (
-    EXISTS (
-        SELECT 1 FROM public.organization_members 
-        WHERE organization_id = organizations.id 
-        AND user_id = auth.uid()
-    )
+    public.is_organization_admin(id)
 );
 
 CREATE POLICY "Authenticated users can create organization"
 ON public.organizations FOR INSERT TO authenticated WITH CHECK (true);
 
 -- Organization Members Policies
-CREATE POLICY "Organization members viewable by members"
+CREATE POLICY "Organization members viewable by self or org members"
 ON public.organization_members FOR SELECT USING (
-    user_id = auth.uid() OR
-    EXISTS (
-        SELECT 1 FROM public.organization_members om
-        WHERE om.organization_id = organization_members.organization_id
-        AND om.user_id = auth.uid()
-    )
+    user_id = auth.uid() OR public.is_organization_member(organization_id)
 );
 
 CREATE POLICY "Authenticated users can join or add members"
@@ -227,29 +268,17 @@ ON public.organization_members FOR INSERT TO authenticated WITH CHECK (true);
 CREATE POLICY "Published exhibitions are viewable by everyone"
 ON public.exhibitions FOR SELECT USING (
     status = 'published' OR 
-    (auth.uid() IS NOT NULL AND EXISTS (
-        SELECT 1 FROM public.organization_members 
-        WHERE organization_id = exhibitions.organization_id 
-        AND user_id = auth.uid()
-    ))
+    (auth.uid() IS NOT NULL AND public.is_organization_member(organization_id))
 );
 
 CREATE POLICY "Organizers can create exhibitions"
 ON public.exhibitions FOR INSERT TO authenticated WITH CHECK (
-    EXISTS (
-        SELECT 1 FROM public.organization_members 
-        WHERE organization_id = exhibitions.organization_id 
-        AND user_id = auth.uid()
-    )
+    public.is_organization_member(organization_id)
 );
 
 CREATE POLICY "Organizers can update their exhibitions"
 ON public.exhibitions FOR UPDATE TO authenticated USING (
-    EXISTS (
-        SELECT 1 FROM public.organization_members 
-        WHERE organization_id = exhibitions.organization_id 
-        AND user_id = auth.uid()
-    )
+    public.is_organization_member(organization_id)
 );
 
 -- Booths Policies
@@ -258,24 +287,13 @@ ON public.booths FOR SELECT USING (true);
 
 CREATE POLICY "Organizers can manage booths"
 ON public.booths FOR ALL TO authenticated USING (
-    EXISTS (
-        SELECT 1 FROM public.exhibitions e
-        JOIN public.organization_members om ON e.organization_id = om.organization_id
-        WHERE e.id = booths.exhibition_id 
-        AND om.user_id = auth.uid()
-    )
+    public.is_exhibition_organizer(booths.exhibition_id)
 );
 
 -- Bookings Policies
 CREATE POLICY "Exhibitors can view their own bookings"
 ON public.bookings FOR SELECT TO authenticated USING (
-    exhibitor_id = auth.uid() OR
-    EXISTS (
-        SELECT 1 FROM public.exhibitions e
-        JOIN public.organization_members om ON e.organization_id = om.organization_id
-        WHERE e.id = bookings.exhibition_id 
-        AND om.user_id = auth.uid()
-    )
+    exhibitor_id = auth.uid() OR public.is_exhibition_organizer(bookings.exhibition_id)
 );
 
 CREATE POLICY "Exhibitors can create bookings"
@@ -285,13 +303,7 @@ ON public.bookings FOR INSERT TO authenticated WITH CHECK (
 
 CREATE POLICY "Exhibitors can cancel or organizers can update bookings"
 ON public.bookings FOR UPDATE TO authenticated USING (
-    exhibitor_id = auth.uid() OR
-    EXISTS (
-        SELECT 1 FROM public.exhibitions e
-        JOIN public.organization_members om ON e.organization_id = om.organization_id
-        WHERE e.id = bookings.exhibition_id 
-        AND om.user_id = auth.uid()
-    )
+    exhibitor_id = auth.uid() OR public.is_exhibition_organizer(bookings.exhibition_id)
 );
 
 -- Notifications Policies
