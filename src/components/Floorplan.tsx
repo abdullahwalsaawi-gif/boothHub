@@ -144,66 +144,88 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
               style={{ transform: `scale(${scale})` }}
             >
               {/* Floorplan SVG Hall */}
-              <svg width="420" height="420" className="bg-white border-2 border-slate-300 shadow-md rounded-xl">
-                {/* Hall Walls & Outline */}
-                <rect x="10" y="10" width="400" height="400" fill="none" stroke="#94A3B8" strokeWidth="2" strokeDasharray="6,4" />
-                
-                {/* Main Entrance */}
-                <rect x="160" y="398" width="100" height="12" fill="#0868E9" rx="3" />
-                <text x="210" y="388" fontSize="11" fontWeight="bold" fill="#0868E9" textAnchor="middle">المدخل الرئيسي</text>
+              {(() => {
+                // Determine hall meter bounds
+                const firstBooth = booths[0];
+                const hallMetersW = firstBooth?.hallWidth ? Number(firstBooth.hallWidth) : 40;
+                const hallMetersH = firstBooth?.hallHeight ? Number(firstBooth.hallHeight) : 30;
 
-                {/* Emergency Exit */}
-                <rect x="160" y="10" width="100" height="8" fill="#FF6D5C" rx="2" />
-                <text x="210" y="28" fontSize="10" fill="#FF6D5C" textAnchor="middle">مخرج طوارئ</text>
+                // Check if booths are stored in meters (e.g. max x < 200) or pixels
+                const maxX = Math.max(...booths.map(b => b.x + b.width), 0);
+                const isMeterScale = maxX <= hallMetersW + 5;
+                const ppm = isMeterScale ? 16 : 1; // Pixels per unit
 
-                {/* Booths */}
-                {booths.map((booth) => {
-                  const isSelected = selectedBooth?.id === booth.id;
-                  return (
-                    <g 
-                      key={booth.id} 
-                      onClick={() => {
-                        if (booth.status === 'available') {
-                          setSelectedBooth(booth);
-                        }
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <rect
-                        x={booth.x}
-                        y={booth.y}
-                        width={booth.width}
-                        height={booth.height}
-                        rx="6"
-                        className={getStatusColor(booth.status, isSelected)}
-                      />
-                      <text
-                        x={booth.x + booth.width / 2}
-                        y={booth.y + booth.height / 2 - 4}
-                        fontSize="12"
-                        fontWeight="bold"
-                        fill={isSelected ? '#ffffff' : (booth.status === 'available' ? '#15803D' : (booth.status === 'booked' ? '#DC2626' : '#64748B'))}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="pointer-events-none"
-                      >
-                        {booth.number}
-                      </text>
-                      <text
-                        x={booth.x + booth.width / 2}
-                        y={booth.y + booth.height / 2 + 10}
-                        fontSize="9"
-                        fill={isSelected ? '#E0E7FF' : '#64748B'}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="pointer-events-none"
-                      >
-                        {booth.size_sqm}م²
-                      </text>
-                    </g>
-                  );
-                })}
-              </svg>
+                const svgWidth = isMeterScale ? Math.max(hallMetersW * ppm, 420) : 420;
+                const svgHeight = isMeterScale ? Math.max(hallMetersH * ppm, 350) : 420;
+
+                return (
+                  <svg width={svgWidth} height={svgHeight} className="bg-white border-2 border-slate-300 shadow-md rounded-xl">
+                    {/* Hall Walls & Outline */}
+                    <rect x="10" y="10" width={svgWidth - 20} height={svgHeight - 20} fill="none" stroke="#94A3B8" strokeWidth="2" strokeDasharray="6,4" />
+                    
+                    {/* Main Entrance */}
+                    <rect x={svgWidth / 2 - 50} y={svgHeight - 16} width="100" height="10" fill="#0868E9" rx="3" />
+                    <text x={svgWidth / 2} y={svgHeight - 22} fontSize="11" fontWeight="bold" fill="#0868E9" textAnchor="middle">المدخل الرئيسي</text>
+
+                    {/* Emergency Exit */}
+                    <rect x={svgWidth / 2 - 40} y="8" width="80" height="8" fill="#FF6D5C" rx="2" />
+                    <text x={svgWidth / 2} y="26" fontSize="10" fill="#FF6D5C" textAnchor="middle">مخرج طوارئ</text>
+
+                    {/* Booths */}
+                    {booths.map((booth) => {
+                      const isSelected = selectedBooth?.id === booth.id;
+                      const bx = isMeterScale ? (booth.x * ppm) + 10 : booth.x;
+                      const by = isMeterScale ? (booth.y * ppm) + 10 : booth.y;
+                      const bw = isMeterScale ? booth.width * ppm : booth.width;
+                      const bh = isMeterScale ? booth.height * ppm : booth.height;
+
+                      return (
+                        <g 
+                          key={booth.id} 
+                          onClick={() => {
+                            if (booth.status === 'available') {
+                              setSelectedBooth(booth);
+                            }
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <rect
+                            x={bx}
+                            y={by}
+                            width={bw}
+                            height={bh}
+                            rx="6"
+                            className={getStatusColor(booth.status, isSelected)}
+                          />
+                          <text
+                            x={bx + bw / 2}
+                            y={by + bh / 2 - 4}
+                            fontSize={Math.max(10, Math.min(13, bw / 4))}
+                            fontWeight="bold"
+                            fill={isSelected ? '#ffffff' : (booth.status === 'available' ? '#15803D' : (booth.status === 'booked' ? '#DC2626' : '#64748B'))}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="pointer-events-none"
+                          >
+                            {booth.number}
+                          </text>
+                          <text
+                            x={bx + bw / 2}
+                            y={by + bh / 2 + 10}
+                            fontSize={Math.max(8, Math.min(10, bw / 5))}
+                            fill={isSelected ? '#E0E7FF' : '#64748B'}
+                            textAnchor="middle"
+                            dominantBaseline="middle"
+                            className="pointer-events-none"
+                          >
+                            {booth.size_sqm}م²
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                );
+              })()}
             </div>
           )}
         </div>

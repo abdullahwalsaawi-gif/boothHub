@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 export type BoothData = {
   id: string
   number: string
+  name?: string
   size_sqm: number
   price: number
   status: 'available' | 'booked' | 'unavailable'
@@ -13,7 +14,10 @@ export type BoothData = {
   y: number
   width: number
   height: number
+  rotation?: number
   amenities?: string[]
+  hallWidth?: number
+  hallHeight?: number
 }
 
 export type BookingRecord = {
@@ -36,6 +40,16 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
   try {
     const supabase = await createClient()
 
+    // Fetch exhibition plan if available
+    const { data: plan } = await supabase
+      .from('exhibition_plans')
+      .select('width, height')
+      .eq('exhibition_id', exhibitionId)
+      .maybeSingle()
+
+    const hallWidth = plan?.width ? Number(plan.width) : undefined
+    const hallHeight = plan?.height ? Number(plan.height) : undefined
+
     // Fetch booths
     const { data: booths, error: boothError } = await supabase
       .from('booths')
@@ -54,15 +68,15 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
     if (boothError || !booths || booths.length === 0) {
       // Return default visual booths with realistic interactive coordinates
       return [
-        { id: 'b-1', number: 'A1', size_sqm: 9, price: 5000, status: 'available', x: 50, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي', 'إنترنت فائق السرعة'] },
-        { id: 'b-2', number: 'A2', size_sqm: 9, price: 5000, status: 'booked', x: 120, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'] },
-        { id: 'b-3', number: 'A3', size_sqm: 9, price: 5000, status: 'available', x: 190, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'] },
-        { id: 'b-4', number: 'A4', size_sqm: 9, price: 5000, status: 'available', x: 260, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'] },
-        { id: 'b-5', number: 'B1', size_sqm: 16, price: 8000, status: 'available', x: 50, y: 150, width: 80, height: 80, amenities: ['كهرباء ثلاثية الفاز', 'شاشة عرض 55 بوصة'] },
-        { id: 'b-6', number: 'B2', size_sqm: 16, price: 8000, status: 'unavailable', x: 140, y: 150, width: 80, height: 80, amenities: ['تحت الصيانة'] },
-        { id: 'b-7', number: 'B3', size_sqm: 16, price: 8000, status: 'available', x: 230, y: 150, width: 80, height: 80, amenities: ['كهرباء ثلاثية الفاز', 'شاشة عرض'] },
-        { id: 'b-8', number: 'C1', size_sqm: 25, price: 12000, status: 'available', x: 50, y: 270, width: 120, height: 60, amenities: ['موقع مميز', 'شاشة LED', 'أثاث فاخر'] },
-        { id: 'b-9', number: 'C2', size_sqm: 25, price: 12000, status: 'booked', x: 180, y: 270, width: 120, height: 60, amenities: ['موقع مميز', 'أثاث فاخر'] }
+        { id: 'b-1', number: 'A1', size_sqm: 9, price: 5000, status: 'available', x: 50, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي', 'إنترنت فائق السرعة'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-2', number: 'A2', size_sqm: 9, price: 5000, status: 'booked', x: 120, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-3', number: 'A3', size_sqm: 9, price: 5000, status: 'available', x: 190, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-4', number: 'A4', size_sqm: 9, price: 5000, status: 'available', x: 260, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-5', number: 'B1', size_sqm: 16, price: 8000, status: 'available', x: 50, y: 150, width: 80, height: 80, amenities: ['كهرباء ثلاثية الفاز', 'شاشة عرض 55 بوصة'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-6', number: 'B2', size_sqm: 16, price: 8000, status: 'unavailable', x: 140, y: 150, width: 80, height: 80, amenities: ['تحت الصيانة'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-7', number: 'B3', size_sqm: 16, price: 8000, status: 'available', x: 230, y: 150, width: 80, height: 80, amenities: ['كهرباء ثلاثية الفاز', 'شاشة عرض'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-8', number: 'C1', size_sqm: 25, price: 12000, status: 'available', x: 50, y: 270, width: 120, height: 60, amenities: ['موقع مميز', 'شاشة LED', 'أثاث فاخر'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-9', number: 'C2', size_sqm: 25, price: 12000, status: 'booked', x: 180, y: 270, width: 120, height: 60, amenities: ['موقع مميز', 'أثاث فاخر'], hallWidth: 420, hallHeight: 420 }
       ]
     }
 
@@ -77,6 +91,7 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
       return {
         id: b.id,
         number: b.booth_number,
+        name: Array.isArray(b.amenities) && b.amenities[0] ? String(b.amenities[0]) : undefined,
         size_sqm: Number(b.size_sqm),
         price: Number(b.price),
         status,
@@ -84,7 +99,10 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
         y: Number(b.position_y),
         width: Number(b.width),
         height: Number(b.height),
-        amenities: Array.isArray(b.amenities) ? b.amenities : []
+        rotation: Number(b.rotation || 0),
+        amenities: Array.isArray(b.amenities) ? b.amenities : [],
+        hallWidth,
+        hallHeight
       }
     })
   } catch (err) {

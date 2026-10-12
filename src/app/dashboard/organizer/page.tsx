@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Home, LayoutDashboard, Store, Users, BarChart3, Bell, Settings, LogOut, Sparkles, Plus, Calendar, MapPin, Eye, Trash2 } from 'lucide-react';
+import { Home, LayoutDashboard, Store, Users, BarChart3, Bell, Settings, LogOut, Sparkles, Plus, Calendar, MapPin, Eye, Trash2, Layers } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/actions/auth';
 import { getOrganizerExhibitions, deleteExhibition } from '@/app/actions/exhibitions';
@@ -204,11 +204,20 @@ export default async function OrganizerDashboard() {
                           <td className="p-4 text-center">
                             <div className="flex items-center justify-center gap-2">
                               <Link 
+                                href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0868E9] text-white text-xs font-semibold rounded-lg hover:bg-[#0868E9]/90 transition-colors shadow-sm"
+                                title="تعديل وتصميم مخطط المعرض والبوثات"
+                              >
+                                <Layers size={14} />
+                                <span>تعديل المخطط</span>
+                              </Link>
+                              <Link 
                                 href={`/explore/${ex.id}`}
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-light-blue-bg text-primary text-xs font-medium rounded-lg hover:bg-primary hover:text-white transition-colors"
+                                title="معاينة المخطط كما يظهر للعارض"
                               >
                                 <Eye size={14} />
-                                <span>معاينة المخطط</span>
+                                <span>معاينة العارض</span>
                               </Link>
                             </div>
                           </td>
