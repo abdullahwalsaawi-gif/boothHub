@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Loader2, AlertCircle, CheckCircle2, MapPin, Edit3 } from 'lucide-react';
+import { X, Loader2, AlertCircle, CheckCircle2, MapPin, Edit3, Trash2 } from 'lucide-react';
 import { Exhibition, updateExhibition } from '@/app/actions/exhibitions';
 import { SAUDI_REGIONS } from '@/lib/saudi-regions';
 import ImageUploadArea from '@/components/ImageUploadArea';
@@ -11,13 +11,15 @@ interface EditExhibitionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onDelete?: (exhibition: Exhibition) => void;
 }
 
 export default function EditExhibitionModal({
   exhibition,
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  onDelete
 }: EditExhibitionModalProps) {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -276,6 +278,26 @@ export default function EditExhibitionModal({
               إلغاء
             </button>
           </div>
+
+          {onDelete && (
+            <div className="pt-4 mt-2 border-t border-slate-100 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-red-600 block">إجراءات متقدمة</span>
+                <span className="text-[11px] text-slate-400">حذف هذا المعرض نهائياً مع كافة الصالات والبوثات التابعة</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onDelete(exhibition);
+                }}
+                className="px-3.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 size={14} />
+                <span>حذف المعرض</span>
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>,

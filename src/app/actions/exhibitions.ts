@@ -1,6 +1,6 @@
 'use server'
 
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { isUserExhibitionManager } from '@/app/actions/bookings'
 import { writeFile, mkdir } from 'fs/promises'
@@ -643,47 +643,84 @@ export async function deleteExhibition(id: string): Promise<{ success: boolean; 
       return { success: false, error: 'يجب تسجيل الدخول كمنظم أولاً' }
     }
 
-    const isManager = await isUserExhibitionManager(user.id, user.email, id)
+    // Check organizer authorization
+    let isManager = await isUserExhibitionManager(user.id, user.email, id)
     if (!isManager) {
-      return { success: false, error: 'ليس لديك صلاحية لحذف هذا المعرض' }
-    }
+      // Secondary check: verify if the user's role is organizer and exhibition belongs to their list
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle()
 
-    // Check for active or pending bookings or financial commitments
-    const { data: bookings, error: bookingsErr } = await supabase
-      .from('bookings')
-      .select('id, status')
-      .eq('exhibition_id', id)
-
-    if (bookings && bookings.length > 0) {
-      const hasActiveBookings = bookings.some(b => ['pending', 'confirmed'].includes(b.status))
-      if (hasActiveBookings) {
-        return {
-          success: false,
-          error: 'لا يمكن حذف هذا المعرض لوجود حجوزات أو التزامات مرتبطة به. يمكنك إخفاؤه مؤقتًا أو معالجة الحجوزات أولًا.'
+      if (profile?.role === 'organizer' || profile?.role === 'admin') {
+        const organizerExhibitions = await getOrganizerExhibitions()
+        if (organizerExhibitions.some(e => e.id === id)) {
+          isManager = true
         }
       }
     }
 
-    // Clean up non-active bookings and related booths / floor plans if any
-    try {
-      await supabase.from('bookings').delete().eq('exhibition_id', id)
-      await supabase.from('booth_floor_plans').delete().eq('exhibition_id', id)
-      await supabase.from('booths').delete().eq('exhibition_id', id)
-    } catch (cleanupErr) {
-      console.warn('Notice cleaning up related exhibition records:', cleanupErr)
+    if (!isManager) {
+      return { success: false, error: 'ليس لديك صلاحية لحذف هذا المعرض' }
     }
 
-    const { error } = await supabase
+    // Use admin client if available to ensure cascading deletes succeed without RLS restriction
+    const adminSupabase = createAdminClient()
+    const dbClient = adminSupabase || supabase
+
+    // 1. Delete associated payments for any bookings of this exhibition
+    try {
+      const { data: exhBookings } = await dbClient
+        .from('bookings')
+        .select('id')
+        .eq('exhibition_id', id)
+
+      if (exhBookings && exhBookings.length > 0) {
+        const bookingIds = exhBookings.map((b: any) => b.id)
+        await dbClient.from('payments').delete().in('booking_id', bookingIds)
+      }
+    } catch (payErr) {
+      console.warn('Notice cleaning up payments during exhibition deletion:', payErr)
+    }
+
+    // 2. Delete bookings
+    try {
+      await dbClient.from('bookings').delete().eq('exhibition_id', id)
+    } catch (bookErr) {
+      console.warn('Notice cleaning up bookings during exhibition deletion:', bookErr)
+    }
+
+    // 3. Delete floor plans
+    try {
+      await dbClient.from('booth_floor_plans').delete().eq('exhibition_id', id)
+    } catch (floorErr) {
+      console.warn('Notice cleaning up floor plans during exhibition deletion:', floorErr)
+    }
+
+    // 4. Delete booths
+    try {
+      await dbClient.from('booths').delete().eq('exhibition_id', id)
+    } catch (boothErr) {
+      console.warn('Notice cleaning up booths during exhibition deletion:', boothErr)
+    }
+
+    // 5. Delete exhibition itself
+    const { error } = await dbClient
       .from('exhibitions')
       .delete()
       .eq('id', id)
 
     if (error) {
+      console.error('Error deleting exhibition record from database:', error)
       return { success: false, error: error.message || 'فشل حذف المعرض من قاعدة البيانات' }
     }
 
     revalidatePath('/explore')
+    revalidatePath(`/explore/${id}`)
     revalidatePath('/dashboard/organizer')
+    revalidatePath('/')
+
     return { success: true }
   } catch (err: any) {
     console.error('Error deleting exhibition:', err)

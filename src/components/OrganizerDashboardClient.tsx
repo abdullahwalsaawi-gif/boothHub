@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { 
   LayoutDashboard, 
@@ -66,8 +67,13 @@ export default function OrganizerDashboardClient({
   profile,
 }: OrganizerDashboardClientProps) {
   // Navigation State
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Data State
   const [exhibitions, setExhibitions] = useState<Exhibition[]>(initialExhibitions);
@@ -99,7 +105,6 @@ export default function OrganizerDashboardClient({
   const [hidingExhibition, setHidingExhibition] = useState<Exhibition | null>(null);
   const [deleteExhibitionModal, setDeleteExhibitionModal] = useState<Exhibition | null>(null);
   const [deleteConfirmTitleInput, setDeleteConfirmTitleInput] = useState('');
-  const [deleteBlockedModal, setDeleteBlockedModal] = useState<{ exhibition: Exhibition; count: number } | null>(null);
   const [exhibitionFilterTab, setExhibitionFilterTab] = useState<'all' | 'published' | 'hidden'>('all');
   const [isExhibitionActionLoading, setIsExhibitionActionLoading] = useState(false);
 
@@ -147,32 +152,26 @@ export default function OrganizerDashboardClient({
 
   const handleDeleteRequest = (ex: Exhibition) => {
     setOpenMenuExhId(null);
-    // Safety check: any active bookings (pending or confirmed)
-    const activeBookings = bookings.filter(b => b.exhibition_id === ex.id && ['pending', 'confirmed'].includes(b.status));
-    if (activeBookings.length > 0) {
-      setDeleteBlockedModal({ exhibition: ex, count: activeBookings.length });
-    } else {
-      setDeleteConfirmTitleInput('');
-      setDeleteExhibitionModal(ex);
-    }
+    setDeleteConfirmTitleInput('');
+    setDeleteExhibitionModal(ex);
   };
 
   const handleConfirmDelete = async () => {
     if (!deleteExhibitionModal) return;
-    if (deleteConfirmTitleInput.trim() !== deleteExhibitionModal.title.trim()) return;
 
+    const targetEx = deleteExhibitionModal;
     setIsExhibitionActionLoading(true);
-    const res = await deleteExhibition(deleteExhibitionModal.id);
+    const res = await deleteExhibition(targetEx.id);
     setIsExhibitionActionLoading(false);
 
     if (!res.success) {
       setActionMessage({ text: res.error || 'فشل حذف المعرض', type: 'error' });
-      setDeleteExhibitionModal(null);
     } else {
-      const deletedTitle = deleteExhibitionModal.title;
-      setExhibitions(prev => prev.filter(e => e.id !== deleteExhibitionModal.id));
+      const deletedTitle = targetEx.title;
+      // Optimistic instant state update
+      setExhibitions(prev => prev.filter(e => e.id !== targetEx.id));
       setDeleteExhibitionModal(null);
-      setActionMessage({ text: `تم حذف المعرض "${deletedTitle}" بنجاح`, type: 'success' });
+      setActionMessage({ text: `تم حذف المعرض "${deletedTitle}" وكافة بياناته بنجاح`, type: 'success' });
     }
   };
 
@@ -877,19 +876,37 @@ export default function OrganizerDashboardClient({
                           </div>
 
                           {/* Action links */}
-                          <div className="grid grid-cols-2 gap-2">
+                          <div className="flex items-center gap-2">
                             <Link
                               href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
-                              className="py-2 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs"
+                              className="flex-1 py-2 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs flex items-center justify-center gap-1.5"
                             >
-                              تعديل المخطط
+                              <Layers size={13} />
+                              <span>المخطط</span>
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => setEditingExhibition(ex)}
+                              className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs transition-colors cursor-pointer"
+                              title="تعديل بيانات المعرض"
+                            >
+                              <Edit3 size={15} />
+                            </button>
                             <Link
                               href={`/explore/${ex.id}`}
-                              className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors"
+                              className="p-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-xl text-xs transition-colors"
+                              title="معاينة المعرض"
                             >
-                              معاينة
+                              <Eye size={15} />
                             </Link>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRequest(ex)}
+                              className="p-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs transition-colors cursor-pointer"
+                              title="حذف المعرض"
+                            >
+                              <Trash2 size={15} />
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1163,39 +1180,58 @@ export default function OrganizerDashboardClient({
 
                           {/* Action Buttons */}
                           <div className="space-y-2">
-                            <Link
-                              href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
-                              className="w-full py-2.5 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs flex items-center justify-center gap-2"
-                            >
-                              <Layers size={15} />
-                              <span>إدارة المخطط والبوثات</span>
-                            </Link>
+                            <div className="grid grid-cols-2 gap-2">
+                              <Link
+                                href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
+                                className="py-2.5 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs flex items-center justify-center gap-1.5"
+                              >
+                                <Layers size={14} />
+                                <span>إدارة المخطط</span>
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => setEditingExhibition(ex)}
+                                className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl text-center transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <Edit3 size={14} />
+                                <span>تعديل البيانات</span>
+                              </button>
+                            </div>
                             
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="grid grid-cols-4 gap-1.5">
                               <button
                                 onClick={() => {
                                   setBoothExhFilter(ex.id);
                                   setActiveTab('booths');
                                 }}
-                                className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors cursor-pointer"
+                                className="py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-xl text-center transition-colors cursor-pointer"
                               >
-                                إدارة البوثات
+                                البوثات
                               </button>
                               <button
                                 onClick={() => {
                                   setBookingExhFilter(ex.id);
                                   setActiveTab('bookings');
                                 }}
-                                className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors cursor-pointer"
+                                className="py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-xl text-center transition-colors cursor-pointer"
                               >
-                                عرض الحجوزات
+                                الحجوزات
                               </button>
                               <Link
                                 href={`/explore/${ex.id}`}
-                                className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors flex items-center justify-center"
+                                className="py-2 bg-slate-50 hover:bg-slate-100 text-slate-700 text-[11px] font-semibold rounded-xl text-center transition-colors flex items-center justify-center"
                               >
                                 معاينة
                               </Link>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRequest(ex)}
+                                className="py-2 bg-red-50 hover:bg-red-100 text-red-600 text-[11px] font-bold rounded-xl text-center transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                title="حذف المعرض"
+                              >
+                                <Trash2 size={12} />
+                                <span>حذف</span>
+                              </button>
                             </div>
                           </div>
 
@@ -2102,7 +2138,7 @@ export default function OrganizerDashboardClient({
         </div>
       )}
 
-      {/* ━━━━━━━━━━━━━━━━━━━━ Modals: Edit, Hide, Delete Blocked, Safe Delete ━━━━━━━━━━━━━━━━━━━━ */}
+      {/* ━━━━━━━━━━━━━━━━━━━━ Modals: Edit, Hide, Safe Delete ━━━━━━━━━━━━━━━━━━━━ */}
 
       {/* 1. Edit Exhibition Modal */}
       <EditExhibitionModal
@@ -2110,11 +2146,15 @@ export default function OrganizerDashboardClient({
         isOpen={!!editingExhibition}
         onClose={() => setEditingExhibition(null)}
         onSuccess={handleRefreshExhibitions}
+        onDelete={(ex) => {
+          setEditingExhibition(null);
+          handleDeleteRequest(ex);
+        }}
       />
 
       {/* 2. Hide Confirmation Modal */}
-      {hidingExhibition && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      {mounted && hidingExhibition && createPortal(
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
             <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
               <EyeOff size={24} />
@@ -2156,105 +2196,85 @@ export default function OrganizerDashboardClient({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* 3. Delete Blocked Modal (Active Bookings Exist) */}
-      {deleteBlockedModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
-            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
-              <AlertTriangle size={24} />
-            </div>
+      {/* 3. Safe Delete Confirmation Modal (Direct & Reliable Confirmation) */}
+      {mounted && deleteExhibitionModal && createPortal(
+        <div className="fixed inset-0 z-[110] bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200 relative my-auto" dir="rtl">
+            <button
+              onClick={() => setDeleteExhibitionModal(null)}
+              disabled={isExhibitionActionLoading}
+              className="absolute top-5 left-5 text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+            >
+              <X size={18} />
+            </button>
 
-            <h3 className="text-lg font-bold text-[#102E70] mb-2">لا يمكن حذف المعرض</h3>
-            <p className="text-xs text-slate-500 font-bold mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-              {deleteBlockedModal.exhibition.title}
-            </p>
-
-            <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs leading-relaxed">
-              لا يمكن حذف هذا المعرض لوجود حجوزات أو التزامات مرتبطة به. يمكنك إخفاؤه مؤقتًا أو معالجة الحجوزات أولًا.
-            </div>
-
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  const target = deleteBlockedModal.exhibition;
-                  setDeleteBlockedModal(null);
-                  setHidingExhibition(target);
-                }}
-                className="flex-1 py-2.5 bg-[#0868E9] hover:bg-[#0868E9]/90 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <EyeOff size={14} />
-                <span>إخفاء المعرض بدلاً من ذلك</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteBlockedModal(null)}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
-              >
-                إغلاق
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 4. Safe Delete Confirmation Modal (Title-Match Required) */}
-      {deleteExhibitionModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
             <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
               <Trash2 size={24} />
             </div>
 
-            <h3 className="text-lg font-bold text-[#102E70] mb-1">تأكيد حذف المعرض نهائياً</h3>
-            <p className="text-xs text-red-600 font-medium mb-3">
-              تحذير: سيتم حذف المعرض وكافة بيانات صالاته وبوثاته بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.
+            <h3 className="text-lg font-bold text-[#102E70] mb-1">تأكيد حذف المعرض</h3>
+            <p className="text-xs text-red-600 font-medium mb-4">
+              تحذير: سيتم حذف هذا المعرض نهائياً مع كافة الصالات والبوثات وسجلات الحجز المرتبطة به.
             </p>
 
-            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-4">
-              <span className="text-[11px] text-slate-400 block mb-1">اسم المعرض المراد حذفه:</span>
-              <p className="text-xs font-bold text-[#102E70] select-all">
-                {deleteExhibitionModal.title}
-              </p>
-            </div>
-
-            <div className="space-y-1.5 mb-5">
-              <label className="text-xs font-bold text-slate-700 block">
-                لتأكيد الحذف، اكتب اسم المعرض مطابقاً تماماً:
-              </label>
-              <input
-                type="text"
-                value={deleteConfirmTitleInput}
-                onChange={e => setDeleteConfirmTitleInput(e.target.value)}
-                placeholder={deleteExhibitionModal.title}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-red-500 font-medium"
-              />
+            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 mb-5 space-y-2.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">اسم المعرض:</span>
+                <span className="font-extrabold text-[#102E70]">{deleteExhibitionModal.title}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">المدينة والمقر:</span>
+                <span className="font-medium text-slate-700">{deleteExhibitionModal.city} - {deleteExhibitionModal.venue}</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">إجمالي البوثات التابعة:</span>
+                <span className="font-bold text-slate-700">
+                  {booths.filter(b => b.exhibition_id === deleteExhibitionModal.id).length || deleteExhibitionModal.total_booths || 0} بوث
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-500">سجلات الحجز المرتبطة:</span>
+                <span className="font-bold text-slate-700">
+                  {bookings.filter(b => b.exhibition_id === deleteExhibitionModal.id).length} حجز
+                </span>
+              </div>
             </div>
 
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                disabled={deleteConfirmTitleInput.trim() !== deleteExhibitionModal.title.trim() || isExhibitionActionLoading}
+                disabled={isExhibitionActionLoading}
                 onClick={handleConfirmDelete}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-red-600/20 disabled:opacity-50"
               >
-                {isExhibitionActionLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                <span>حذف المعرض نهائياً</span>
+                {isExhibitionActionLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>جاري الحذف...</span>
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    <span>نعم، تأكيد حذف المعرض نهائياً</span>
+                  </>
+                )}
               </button>
               <button
                 type="button"
                 disabled={isExhibitionActionLoading}
                 onClick={() => setDeleteExhibitionModal(null)}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs sm:text-sm font-bold transition-colors cursor-pointer"
               >
                 إلغاء
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
     </div>
