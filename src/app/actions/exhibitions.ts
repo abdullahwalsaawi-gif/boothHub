@@ -468,6 +468,7 @@ export async function getOrganizerExhibitions(): Promise<Exhibition[]> {
         organizations (name),
         booths (id, operational_status)
       `)
+      .neq('status', 'cancelled')
 
     if (orgIds.length > 0) {
       query = query.in('organization_id', orgIds)
@@ -712,8 +713,16 @@ export async function deleteExhibition(id: string): Promise<{ success: boolean; 
       .eq('id', id)
 
     if (error) {
-      console.error('Error deleting exhibition record from database:', error)
-      return { success: false, error: error.message || 'فشل حذف المعرض من قاعدة البيانات' }
+      console.warn('Hard delete encountered error, applying status cancellation fallback:', error.message)
+      const { error: cancelErr } = await dbClient
+        .from('exhibitions')
+        .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+        .eq('id', id)
+
+      if (cancelErr) {
+        console.error('Error cancelling exhibition record:', cancelErr)
+        return { success: false, error: cancelErr.message || 'فشل حذف المعرض من قاعدة البيانات' }
+      }
     }
 
     revalidatePath('/explore')

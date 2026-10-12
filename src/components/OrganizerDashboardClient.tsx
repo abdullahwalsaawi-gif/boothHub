@@ -105,6 +105,7 @@ export default function OrganizerDashboardClient({
   const [hidingExhibition, setHidingExhibition] = useState<Exhibition | null>(null);
   const [deleteExhibitionModal, setDeleteExhibitionModal] = useState<Exhibition | null>(null);
   const [deleteConfirmTitleInput, setDeleteConfirmTitleInput] = useState('');
+  const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
   const [exhibitionFilterTab, setExhibitionFilterTab] = useState<'all' | 'published' | 'hidden'>('all');
   const [isExhibitionActionLoading, setIsExhibitionActionLoading] = useState(false);
 
@@ -152,6 +153,7 @@ export default function OrganizerDashboardClient({
 
   const handleDeleteRequest = (ex: Exhibition) => {
     setOpenMenuExhId(null);
+    setDeleteModalError(null);
     setDeleteConfirmTitleInput('');
     setDeleteExhibitionModal(ex);
   };
@@ -160,17 +162,20 @@ export default function OrganizerDashboardClient({
     if (!deleteExhibitionModal) return;
 
     const targetEx = deleteExhibitionModal;
+    setDeleteModalError(null);
     setIsExhibitionActionLoading(true);
     const res = await deleteExhibition(targetEx.id);
     setIsExhibitionActionLoading(false);
 
     if (!res.success) {
+      setDeleteModalError(res.error || 'فشل حذف المعرض من قاعدة البيانات');
       setActionMessage({ text: res.error || 'فشل حذف المعرض', type: 'error' });
     } else {
       const deletedTitle = targetEx.title;
       // Optimistic instant state update
       setExhibitions(prev => prev.filter(e => e.id !== targetEx.id));
       setDeleteExhibitionModal(null);
+      setDeleteModalError(null);
       setActionMessage({ text: `تم حذف المعرض "${deletedTitle}" وكافة بياناته بنجاح`, type: 'success' });
     }
   };
@@ -2243,6 +2248,13 @@ export default function OrganizerDashboardClient({
                 </span>
               </div>
             </div>
+
+            {deleteModalError && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle size={16} className="shrink-0 text-red-500" />
+                <span>{deleteModalError}</span>
+              </div>
+            )}
 
             <div className="flex items-center gap-3">
               <button
