@@ -62,6 +62,7 @@ const FALLBACK_EXHIBITIONS: Exhibition[] = [
     end_date: '2026-12-25',
     status: 'published',
     available_booths: 42,
+    cover_image_url: '/images/exhibition-real-estate.jpg',
     organization_name: 'المجلس العقاري'
   },
   {
@@ -75,6 +76,7 @@ const FALLBACK_EXHIBITIONS: Exhibition[] = [
     end_date: '2027-01-09',
     status: 'published',
     available_booths: 8,
+    cover_image_url: '/images/exhibition-coffee.jpg',
     organization_name: 'رابطة القهوة'
   }
 ]
@@ -122,10 +124,27 @@ export async function getExhibitions(filters?: {
 
     return data.map((item: any) => {
       const isKleija = item.id === 'e0e920b6-b195-4e6d-ad6d-16dbf4d9af43' || item.title?.includes('كليجا')
+      
+      let coverImage = item.cover_image_url
+      if (!coverImage || coverImage === '') {
+        if (item.id === 'e06ecf0a-421d-431a-9fb7-72e2405ff77d' || item.id === '33333333-3333-3333-3333-333333333333' || item.title?.includes('عقار') || item.category === 'عقارات') {
+          coverImage = '/images/exhibition-real-estate.jpg'
+        } else if (item.id === 'd1823810-9069-43fa-bef8-485c95863d98' || item.id === '44444444-4444-4444-4444-444444444444' || item.title?.includes('قهوة') || item.title?.includes('شوكولاتة')) {
+          coverImage = '/images/exhibition-coffee.jpg'
+        } else if (item.id === 'a7569820-9fc0-4bcd-bb0a-ad37f6d39f37' || item.title?.includes('تقنية')) {
+          coverImage = '/images/exhibition-tech.jpg'
+        } else if (isKleija) {
+          coverImage = '/images/exhibition-kleija.jpg'
+        } else if (item.id === 'bde40e86-72c3-47f3-b90f-ed4510e4298b' || item.title?.includes('كتاب')) {
+          coverImage = '/images/exhibition-book.jpg'
+        }
+      }
+
       return {
         ...item,
         city: isKleija ? 'القصيم' : item.city,
         venue: isKleija ? 'بريدة' : item.venue,
+        cover_image_url: coverImage,
         organization_name: item.organizations?.name,
         total_booths: item.booths?.length || 0,
         available_booths: item.booths?.filter((b: any) => b.operational_status === 'operational').length || 0
@@ -156,11 +175,27 @@ export async function getExhibitionById(id: string): Promise<Exhibition | null> 
     }
 
     const isKleija = data.id === 'e0e920b6-b195-4e6d-ad6d-16dbf4d9af43' || data.title?.includes('كليجا')
+    
+    let coverImage = data.cover_image_url
+    if (!coverImage || coverImage === '') {
+      if (data.id === 'e06ecf0a-421d-431a-9fb7-72e2405ff77d' || data.id === '33333333-3333-3333-3333-333333333333' || data.title?.includes('عقار') || data.category === 'عقارات') {
+        coverImage = '/images/exhibition-real-estate.jpg'
+      } else if (data.id === 'd1823810-9069-43fa-bef8-485c95863d98' || data.id === '44444444-4444-4444-4444-444444444444' || data.title?.includes('قهوة') || data.title?.includes('شوكولاتة')) {
+        coverImage = '/images/exhibition-coffee.jpg'
+      } else if (data.id === 'a7569820-9fc0-4bcd-bb0a-ad37f6d39f37' || data.title?.includes('تقنية')) {
+        coverImage = '/images/exhibition-tech.jpg'
+      } else if (isKleija) {
+        coverImage = '/images/exhibition-kleija.jpg'
+      } else if (data.id === 'bde40e86-72c3-47f3-b90f-ed4510e4298b' || data.title?.includes('كتاب')) {
+        coverImage = '/images/exhibition-book.jpg'
+      }
+    }
 
     return {
       ...data,
       city: isKleija ? 'القصيم' : data.city,
       venue: isKleija ? 'بريدة' : data.venue,
+      cover_image_url: coverImage,
       organization_name: data.organizations?.name
     }
   } catch (err) {

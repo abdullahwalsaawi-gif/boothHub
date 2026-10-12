@@ -16,15 +16,22 @@ export default function FeaturedExhibitions({ exhibitions }: FeaturedExhibitions
 
   // Helper to determine the best matching realistic exhibition image
   const getExhibitionImage = (ex: Exhibition, index: number) => {
-    if (ex.cover_image_url && ex.cover_image_url.startsWith('http')) {
+    if (ex.cover_image_url && (ex.cover_image_url.startsWith('http') || ex.cover_image_url.startsWith('/images/'))) {
       return ex.cover_image_url;
     }
+    const id = ex.id || '';
     const title = ex.title?.toLowerCase() || '';
     const cat = ex.category?.toLowerCase() || '';
+    if (id === 'e06ecf0a-421d-431a-9fb7-72e2405ff77d' || id === '33333333-3333-3333-3333-333333333333' || title.includes('عقار') || cat.includes('عقار')) {
+      return '/images/exhibition-real-estate.jpg';
+    }
+    if (id === 'd1823810-9069-43fa-bef8-485c95863d98' || id === '44444444-4444-4444-4444-444444444444' || title.includes('قهوة') || title.includes('شوكولاتة')) {
+      return '/images/exhibition-coffee.jpg';
+    }
     if (title.includes('تقنية') || cat.includes('تقنية')) {
       return '/images/exhibition-tech.jpg';
     }
-    if (title.includes('كليجا') || cat.includes('أغذية')) {
+    if (title.includes('كليجا')) {
       return '/images/exhibition-kleija.jpg';
     }
     if (title.includes('كتاب') || cat.includes('ثقافة')) {
