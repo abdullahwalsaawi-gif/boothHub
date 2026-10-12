@@ -90,6 +90,8 @@ ${boothsSummary || 'مخططات البوثات متوفرة داخل صفحة �
     matchedExhibitions = exhibitions.filter(e => e.city.includes('الرياض'))
   } else if (cleanQ.includes('جدة')) {
     matchedExhibitions = exhibitions.filter(e => e.city.includes('جدة'))
+  } else if (cleanQ.includes('القصيم') || cleanQ.includes('بريدة') || cleanQ.includes('عنيزة')) {
+    matchedExhibitions = exhibitions.filter(e => e.city.includes('القصيم') || e.city.includes('بريدة') || (e.venue && e.venue.includes('بريدة')))
   } else if (cleanQ.includes('الدمام') || cleanQ.includes('الشرقية')) {
     matchedExhibitions = exhibitions.filter(e => e.city.includes('الدمام'))
   }
@@ -109,7 +111,7 @@ ${boothsSummary || 'مخططات البوثات متوفرة داخل صفحة �
   }
 
   return {
-    text: `أهلاً بك في بوث هب! يتوفر لدينا حالياً ${exhibitions.length} معارض منشورة في الرياض وجدة والدمام تغطي مجالات التقنية، الثقافة، العقار، والأغذية.\n\nهل تود استعراض المعارض في مدينة محددة أو لنشاط تجاري معين؟`,
+    text: `أهلاً بك في بوث هب! يتوفر لدينا حالياً ${exhibitions.length} معارض منشورة في الرياض وجدة والقصيم والدمام ومختلف مدن المملكة تغطي مجالات التقنية، التراث والثقافة، العقار، والأغذية.\n\nهل تود استعراض المعارض في مدينة محددة أو لنشاط تجاري معين؟`,
     suggestedExhibitions: exhibitions.slice(0, 3).map(e => ({ id: e.id, title: e.title, city: e.city }))
   }
 }

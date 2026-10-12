@@ -99,7 +99,12 @@ export async function getExhibitions(filters?: {
       .eq('status', filters?.status || 'published')
 
     if (filters?.city && filters.city !== 'الكل' && filters.city !== 'المدينة') {
-      query = query.eq('city', filters.city)
+      const c = filters.city.trim()
+      if (c === 'القصيم' || c === 'بريدة') {
+        query = query.or(`city.eq.القصيم,city.eq.بريدة,city.ilike.%القصيم%,city.ilike.%بريدة%,venue.ilike.%بريدة%,venue.ilike.%القصيم%`)
+      } else {
+        query = query.or(`city.eq.${c},city.ilike.%${c}%,venue.ilike.%${c}%`)
+      }
     }
 
     if (filters?.category && filters.category !== 'الكل' && filters.category !== 'النوع') {
@@ -115,7 +120,14 @@ export async function getExhibitions(filters?: {
     if (error || !data || data.length === 0) {
       // Return filtered fallback if table is empty or not yet migrated
       return FALLBACK_EXHIBITIONS.filter(ex => {
-        if (filters?.city && filters.city !== 'الكل' && filters.city !== 'المدينة' && ex.city !== filters.city) return false
+        if (filters?.city && filters.city !== 'الكل' && filters.city !== 'المدينة') {
+          const c = filters.city.trim()
+          const exCity = (ex.city || '').trim()
+          const exVenue = (ex.venue || '').trim()
+          const matches = exCity.includes(c) || c.includes(exCity) || exVenue.includes(c) ||
+            ((c === 'القصيم' || c === 'بريدة') && (exCity.includes('قصيم') || exCity.includes('بريدة') || exVenue.includes('قصيم') || exVenue.includes('بريدة')))
+          if (!matches) return false
+        }
         if (filters?.category && filters.category !== 'الكل' && filters.category !== 'النوع' && ex.category !== filters.category) return false
         if (filters?.search && !ex.title.includes(filters.search)) return false
         return true

@@ -4,6 +4,7 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { Sparkles, Send, Bot, User, ArrowLeft, Store, MapPin, Loader2, Compass } from 'lucide-react';
+import { SAUDI_REGIONS } from '@/lib/saudi-regions';
 
 type Message = {
   id: string
@@ -253,12 +254,27 @@ export default function AIAssistantPage() {
                     <select
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      className="w-full px-3 py-2 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
+                      className="w-full px-3 py-2 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary font-medium text-primary-dark"
                     >
-                      <option value="الرياض">الرياض</option>
-                      <option value="جدة">جدة</option>
-                      <option value="الدمام">الدمام</option>
-                      <option value="الكل">جميع المدن</option>
+                      <option value="الكل">جميع المدن والمناطق</option>
+                      <optgroup label="المدن الشائعة">
+                        <option value="القصيم">القصيم</option>
+                        <option value="بريدة">بريدة</option>
+                        <option value="عنيزة">عنيزة</option>
+                        <option value="الرياض">الرياض</option>
+                        <option value="جدة">جدة</option>
+                        <option value="الدمام">الدمام</option>
+                        <option value="مكة المكرمة">مكة المكرمة</option>
+                        <option value="المدينة المنورة">المدينة المنورة</option>
+                      </optgroup>
+                      {SAUDI_REGIONS.map((reg) => (
+                        <optgroup key={reg.id} label={reg.name}>
+                          <option value={reg.shortName}>{reg.shortName} (المنطقة كاملة)</option>
+                          {reg.cities.map((c) => (
+                            <option key={c} value={c}>{c}</option>
+                          ))}
+                        </optgroup>
+                      ))}
                     </select>
                   </div>
 

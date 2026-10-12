@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Search, MapPin, Calendar, Filter, ArrowLeft, Store, Sparkles, Settings, UtensilsCrossed, BookOpen, Layers } from 'lucide-react';
 import { getExhibitions, Exhibition } from '@/app/actions/exhibitions';
 import { getExhibitionImage } from '@/lib/utils';
+import { SAUDI_REGIONS } from '@/lib/saudi-regions';
 
 // Helper for category icon matching the homepage
 const getCategoryIcon = (category: string) => {
@@ -128,13 +129,36 @@ export default async function Explore({
                 <select 
                   name="city"
                   defaultValue={city || 'المدينة'}
-                  className="px-4 py-3.5 bg-white/90 border border-[#E2E8F0] rounded-xl sm:rounded-2xl text-sm focus:outline-none focus:border-[#086BEE] focus:bg-white focus:ring-2 focus:ring-[#086BEE]/15 transition-all min-w-[130px] font-semibold text-[#082B78] cursor-pointer"
+                  className="px-4 py-3.5 bg-white/90 border border-[#E2E8F0] rounded-xl sm:rounded-2xl text-sm focus:outline-none focus:border-[#086BEE] focus:bg-white focus:ring-2 focus:ring-[#086BEE]/15 transition-all min-w-[140px] font-semibold text-[#082B78] cursor-pointer"
                 >
-                  <option value="المدينة">كل المدن</option>
-                  <option value="الرياض">الرياض</option>
-                  <option value="جدة">جدة</option>
-                  <option value="القصيم">القصيم</option>
-                  <option value="الدمام">الدمام</option>
+                  <option value="المدينة">كل المدن والمناطق</option>
+                  <optgroup label="المدن والمناطق الشائعة">
+                    <option value="القصيم">القصيم (كامل المنطقة)</option>
+                    <option value="بريدة">بريدة</option>
+                    <option value="عنيزة">عنيزة</option>
+                    <option value="الرياض">الرياض</option>
+                    <option value="جدة">جدة</option>
+                    <option value="الدمام">الدمام</option>
+                    <option value="مكة المكرمة">مكة المكرمة</option>
+                    <option value="المدينة المنورة">المدينة المنورة</option>
+                    <option value="الخبر">الخبر</option>
+                    <option value="الأحساء">الأحساء</option>
+                    <option value="أبها">أبها</option>
+                    <option value="تبوك">تبوك</option>
+                    <option value="حائل">حائل</option>
+                    <option value="جازان">جازان</option>
+                    <option value="نجران">نجران</option>
+                  </optgroup>
+                  {SAUDI_REGIONS.map((region) => (
+                    <optgroup key={region.id} label={region.name}>
+                      <option value={region.shortName}>{region.shortName} (المنطقة كاملة)</option>
+                      {region.cities.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
                 </select>
 
                 <select 

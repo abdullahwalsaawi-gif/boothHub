@@ -1,7 +1,8 @@
 "use client"
 import { useState } from 'react';
-import { Plus, X, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, X, Loader2, CheckCircle2, AlertCircle, MapPin } from 'lucide-react';
 import { createExhibition } from '@/app/actions/exhibitions';
+import { SAUDI_REGIONS } from '@/lib/saudi-regions';
 
 export default function CreateExhibitionModal() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,12 +10,27 @@ export default function CreateExhibitionModal() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
+  // Region and City States
+  const [selectedRegionId, setSelectedRegionId] = useState<string>('qassim');
+  const currentRegion = SAUDI_REGIONS.find((r) => r.id === selectedRegionId) || SAUDI_REGIONS[0];
+  const [selectedCity, setSelectedCity] = useState<string>('بريدة');
+
+  const handleRegionChange = (newRegionId: string) => {
+    setSelectedRegionId(newRegionId);
+    const reg = SAUDI_REGIONS.find((r) => r.id === newRegionId);
+    if (reg && reg.cities.length > 0) {
+      setSelectedCity(reg.cities[0]);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
+    formData.set('city', selectedCity);
+    formData.set('region', currentRegion.shortName);
 
     try {
       const res = await createExhibition(formData);
@@ -79,7 +95,7 @@ export default function CreateExhibitionModal() {
                   type="text" 
                   name="title" 
                   required 
-                  placeholder="مثال: معرض الابتكار والذكاء الاصطناعي 2026"
+                  placeholder="مثال: معرض كليجا والتمور الدولي"
                   className="w-full px-4 py-2.5 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
                 />
               </div>
@@ -95,34 +111,64 @@ export default function CreateExhibitionModal() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-bold text-primary-dark block mb-1">التصنيف *</label>
+                <select 
+                  name="category" 
+                  required
+                  className="w-full px-4 py-2.5 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
+                >
+                  <option value="أغذية">أغذية</option>
+                  <option value="تراث وثقافة">تراث وثقافة</option>
+                  <option value="تقنية">تقنية</option>
+                  <option value="ثقافة">ثقافة وكتب</option>
+                  <option value="عقارات">عقارات</option>
+                  <option value="صحة">صحة</option>
+                </select>
+              </div>
+
+              {/* Saudi Region and City Selectors */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl">
                 <div>
-                  <label className="text-xs font-bold text-primary-dark block mb-1">التصنيف *</label>
+                  <label className="text-xs font-bold text-primary-dark flex items-center gap-1.5 mb-1">
+                    <MapPin size={14} className="text-primary" />
+                    <span>المنطقة *</span>
+                  </label>
                   <select 
-                    name="category" 
-                    required
-                    className="w-full px-4 py-2.5 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
+                    value={selectedRegionId} 
+                    onChange={(e) => handleRegionChange(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-white border border-border rounded-xl text-sm focus:outline-none focus:border-primary font-medium text-primary-dark"
                   >
-                    <option value="تقنية">تقنية</option>
-                    <option value="ثقافة">ثقافة</option>
-                    <option value="عقارات">عقارات</option>
-                    <option value="أغذية">أغذية</option>
-                    <option value="صحة">صحة</option>
+                    {SAUDI_REGIONS.map((region) => (
+                      <option key={region.id} value={region.id}>
+                        {region.name}
+                      </option>
+                    ))}
                   </select>
+                  <span className="text-[11px] text-gray-400 mt-1 block">اختر المنطقة لعرض مدنها ومحافظاتها.</span>
                 </div>
+
                 <div>
-                  <label className="text-xs font-bold text-primary-dark block mb-1">المدينة *</label>
+                  <label className="text-xs font-bold text-primary-dark flex items-center gap-1.5 mb-1">
+                    <MapPin size={14} className="text-[#FF6D5C]" />
+                    <span>المدينة / المحافظة *</span>
+                  </label>
                   <select 
-                    name="city" 
+                    name="city"
+                    value={selectedCity} 
+                    onChange={(e) => setSelectedCity(e.target.value)}
                     required
-                    className="w-full px-4 py-2.5 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
+                    className="w-full px-4 py-2.5 bg-white border border-border rounded-xl text-sm focus:outline-none focus:border-primary font-medium text-primary-dark"
                   >
-                    <option value="الرياض">الرياض</option>
-                    <option value="جدة">جدة</option>
-                    <option value="الدمام">الدمام</option>
-                    <option value="مكة المكرمة">مكة المكرمة</option>
-                    <option value="المدينة المنورة">المدينة المنورة</option>
+                    <optgroup label={currentRegion.name}>
+                      {currentRegion.cities.map((city) => (
+                        <option key={city} value={city}>
+                          {city}
+                        </option>
+                      ))}
+                    </optgroup>
                   </select>
+                  <span className="text-[11px] text-gray-400 mt-1 block">المدينة المحددة: {selectedCity} ({currentRegion.shortName})</span>
                 </div>
               </div>
 
@@ -132,7 +178,7 @@ export default function CreateExhibitionModal() {
                   type="text" 
                   name="venue" 
                   required 
-                  placeholder="مثال: واجهة الرياض للمعارض"
+                  placeholder="مثال: مركز القصيم الدولي للمعارض والمؤتمرات - بريدة"
                   className="w-full px-4 py-2.5 bg-secondary-bg border border-border rounded-xl text-sm focus:outline-none focus:border-primary"
                 />
               </div>
