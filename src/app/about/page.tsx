@@ -64,10 +64,60 @@ export default function AboutPage() {
       <Navbar />
 
       <main className="flex-grow py-12 lg:py-20 relative overflow-hidden bg-gradient-to-b from-[#FFFFFF] via-[#F4F8FE] to-[#EAF3FF]">
-        {/* Ambient atmospheric lighting */}
+        {/* Multi-layered Ambient Background Decorations matching Explore page */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden -z-0">
-          <div className="absolute top-10 right-[-5%] w-96 h-96 rounded-full bg-[#0866E8]/[0.05] blur-3xl"></div>
-          <div className="absolute top-1/3 left-[-5%] w-96 h-96 rounded-full bg-[#FF625B]/[0.03] blur-3xl"></div>
+          {/* 1. Header Title Radiant Glow */}
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[620px] h-[340px] bg-gradient-to-tr from-[#086BEE]/15 via-[#086BEE]/10 to-[#FF6B61]/5 rounded-full blur-3xl animate-pulse-glow"></div>
+
+          {/* 2. Top-Right Geometric circles & brand motif */}
+          <div className="absolute top-16 right-[-4%] w-80 h-80 rounded-full border border-[#086BEE]/15 border-dashed animate-float-slow"></div>
+          <div className="absolute top-28 right-[4%] w-48 h-48 rounded-full border border-[#086BEE]/10"></div>
+          <div className="absolute top-44 right-[10%] w-3 h-3 rounded-full bg-[#086BEE]/25"></div>
+          <div className="absolute top-36 right-[12%] w-2 h-2 rounded-full bg-[#FF6B61]/35"></div>
+
+          {/* 3. Top-Left Geometric circles & subtle coral glow */}
+          <div className="absolute top-20 left-[-4%] w-88 h-88 rounded-full border border-[#086BEE]/10 animate-drift-slow"></div>
+          <div className="absolute top-32 left-[3%] w-60 h-60 bg-[#FF6B61]/[0.03] rounded-full blur-2xl"></div>
+          <div className="absolute top-48 left-[8%] w-3.5 h-3.5 rounded-full bg-[#FF625B]/30"></div>
+          <div className="absolute top-56 left-[6%] w-2 h-2 rounded-full bg-[#086BEE]/30"></div>
+
+          {/* 4. Subtle curved contour lines (mesh depth) */}
+          <svg
+            className="absolute top-8 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[420px] opacity-40 -z-10"
+            viewBox="0 0 1200 420"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M-100 210C150 90 400 320 650 200C900 80 1150 290 1300 180"
+              stroke="#086BEE"
+              strokeOpacity="0.08"
+              strokeWidth="1.5"
+              strokeDasharray="4 4"
+            />
+            <path
+              d="M-50 280C200 160 450 380 700 270C950 160 1180 340 1350 240"
+              stroke="#086BEE"
+              strokeOpacity="0.05"
+              strokeWidth="1.2"
+            />
+            <path
+              d="M0 140C250 260 500 50 750 170C1000 290 1200 120 1350 200"
+              stroke="#FF6B61"
+              strokeOpacity="0.04"
+              strokeWidth="1.2"
+            />
+          </svg>
+
+          {/* 5. Ambient mid-page glow */}
+          <div className="absolute top-[380px] left-1/2 -translate-x-1/2 w-[850px] h-[180px] bg-[#086BEE]/[0.05] rounded-full blur-3xl"></div>
+
+          {/* 6. Flank geometric shapes & soft glow behind lower sections */}
+          <div className="absolute bottom-28 right-[-6%] w-96 h-96 rounded-[3.5rem] border border-[#086BEE]/10 rotate-12 animate-float-slow"></div>
+          <div className="absolute bottom-20 right-[2%] w-72 h-72 bg-[#086BEE]/[0.05] rounded-full blur-3xl"></div>
+          <div className="absolute bottom-40 left-[-6%] w-96 h-96 rounded-full border border-[#086BEE]/10 border-dashed animate-drift-slow"></div>
+          <div className="absolute bottom-16 left-[2%] w-80 h-80 bg-[#EAF3FF] rounded-full blur-2xl"></div>
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 w-[1100px] h-[360px] bg-gradient-to-t from-[#086BEE]/[0.04] to-transparent rounded-full blur-3xl"></div>
         </div>
 
         <div className="container mx-auto px-4 md:px-8 relative z-10 max-w-6xl">
