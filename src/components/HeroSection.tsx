@@ -6,116 +6,137 @@ import { motion } from 'framer-motion';
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#F4F8FF] to-white pt-10 pb-16 lg:pt-14 lg:pb-24 border-b border-[#E2E8F0]/60">
+    <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#F6F9FF] to-[#EEF5FF] pt-8 pb-16 lg:pt-14 lg:pb-24 border-b border-[#E2E8F0]/70">
       
-      {/* Decorative ambient background accents */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-12 right-[-5%] w-80 h-80 rounded-full bg-[#086BEE]/5 blur-3xl"></div>
-        <div className="absolute bottom-10 left-[-5%] w-96 h-96 rounded-full bg-[#FF6257]/5 blur-3xl"></div>
+      {/* Decorative ambient background accents - clean and uncluttered */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-10 right-[-4%] w-80 h-80 rounded-full bg-[#086BEE]/5 blur-3xl"></div>
+        <div className="absolute bottom-12 left-[-4%] w-96 h-96 rounded-full bg-[#FF6257]/5 blur-3xl"></div>
+        {/* Subtle geometric grid / dots overlay */}
+        <div className="absolute inset-0 bg-[radial-gradient(#086BEE_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.03]"></div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 relative z-10">
         
-        {/* Main Hero Grid: 47% Text (Right) vs 53% Image (Left) */}
-        <div className="flex flex-col-reverse lg:flex-row items-center gap-10 lg:gap-14">
+        {/* 
+          Hero Layout:
+          Desktop: 47% Text on the RIGHT, 53% Image on the LEFT.
+          Mobile: Texts on top, Image below.
+          In RTL (dir="rtl"):
+          flex-col (mobile) renders Child 1 (Text) on top, Child 2 (Image) below.
+          lg:flex-row (desktop) renders Child 1 (Text) on the RIGHT, Child 2 (Image) on the LEFT.
+        */}
+        <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-14">
           
-          {/* Left Side: Exhibition Image (53% width on Desktop) */}
+          {/* RIGHT SIDE (in RTL): Typography & Buttons (47% width on Desktop) */}
           <motion.div 
-            initial={{ opacity: 0, x: -30 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full lg:w-[47%] text-right flex flex-col items-start"
+          >
+            
+            {/* Small Top Badge */}
+            <motion.div 
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.5 }}
+              className="inline-flex items-center gap-2.5 bg-[#F4F8FF] border border-[#086BEE]/20 px-4 py-1.5 rounded-full text-xs sm:text-[13px] font-bold text-[#086BEE] mb-5 shadow-sm"
+            >
+              <span className="w-2 h-2 rounded-full bg-[#086BEE] animate-pulse shrink-0"></span>
+              <span>المنصة الذكية لإدارة وحجز بوثات المعارض في المملكة</span>
+            </motion.div>
+
+            {/* Main Heading: Alexandria Bold */}
+            <motion.h1 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.6 }}
+              className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold leading-[1.25] mb-5 tracking-tight"
+            >
+              <span className="text-[#082B78] block">مساحتك في</span>
+              <span className="text-[#082B78] block">المعرض القادم</span>
+              <span className="text-[#086BEE] block">تبدأ من هنا</span>
+            </motion.h1>
+
+            {/* Description Paragraph */}
+            <motion.p 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25, duration: 0.6 }}
+              className="text-[15px] sm:text-[16px] md:text-[17px] text-[#65789A] leading-[1.8] max-w-xl mb-8 font-normal"
+            >
+              اكتشف المعارض القادمة، استعرض البوثات المتاحة، واحجز مساحتك بسهولة مع توصيات ذكية مدعومة بنماذج Gemini.
+            </motion.p>
+
+            {/* Action Buttons */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35, duration: 0.6 }}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto"
+            >
+              
+              {/* Primary Button: Explore Exhibitions */}
+              <Link 
+                href="/explore" 
+                className="group px-7 py-3.5 sm:px-8 sm:py-4 bg-[#086BEE] text-white rounded-2xl font-bold text-[15px] hover:bg-[#0759c9] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-lg shadow-[#086BEE]/25 flex items-center justify-center gap-3"
+              >
+                <span>استكشف المعارض</span>
+                <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform duration-200" />
+              </Link>
+
+              {/* Secondary Button: Smart AI Assistant */}
+              <Link 
+                href="/ai-assistant" 
+                className="px-6 py-3.5 sm:px-7 sm:py-4 bg-white text-[#082B78] border border-[#086BEE]/40 rounded-2xl font-bold text-[15px] hover:border-[#086BEE] hover:bg-[#F4F8FF] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shadow-sm flex items-center justify-center gap-2.5"
+              >
+                <Sparkles size={18} className="text-[#FF6257] shrink-0" />
+                <span>المساعد الذكي</span>
+              </Link>
+            </motion.div>
+
+          </motion.div>
+
+          {/* LEFT SIDE (in RTL): Branded Exhibition Photography (53% width on Desktop) */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             className="w-full lg:w-[53%] relative flex justify-center items-center"
           >
-            {/* Geometric accents around the image */}
-            <div className="absolute -top-4 -right-4 w-28 h-28 rounded-3xl bg-gradient-to-tr from-[#086BEE] to-[#082B78] opacity-15 rotate-12 -z-10 hidden sm:block"></div>
-            <div className="absolute -bottom-5 -left-4 w-32 h-32 rounded-3xl bg-gradient-to-br from-[#FF6257] to-[#FF8A80] opacity-20 -rotate-12 -z-10 hidden sm:block"></div>
-            <div className="absolute top-1/2 -left-6 w-12 h-12 rounded-2xl border-4 border-[#086BEE]/30 rotate-45 -z-10 hidden lg:block"></div>
-            <div className="absolute bottom-8 right-8 w-6 h-6 rounded-full bg-[#FF6257]/40 -z-10"></div>
+            {/* Background geometric accents behind image */}
+            <div className="absolute -top-4 -left-4 w-28 h-28 rounded-3xl bg-gradient-to-tr from-[#086BEE]/15 to-[#082B78]/10 rotate-6 -z-10 hidden sm:block"></div>
+            <div className="absolute -bottom-5 -right-4 w-32 h-32 rounded-3xl bg-gradient-to-br from-[#FF6257]/15 to-[#FF8A80]/10 -rotate-6 -z-10 hidden sm:block"></div>
+            <div className="absolute top-1/3 -right-6 w-12 h-12 rounded-2xl border-2 border-[#086BEE]/20 rotate-45 -z-10 hidden lg:block"></div>
+            <div className="absolute bottom-6 left-6 w-5 h-5 rounded-full bg-[#FF6257]/30 -z-10"></div>
 
-            {/* Main Image Container */}
-            <div className="relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl shadow-[#082B78]/12 border border-white/80 bg-white">
+            {/* Image Card Container */}
+            <div className="relative w-full overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl shadow-[#082B78]/10 border border-white/90 bg-white">
               
-              {/* Soft geometric cutting & subtle gradient overlay at the right edge where image meets text */}
               <div className="relative aspect-[4/3] w-full">
                 <Image 
                   src="/hero-exhibition.jpg" 
-                  alt="معرض أعمال سعودي حديث - بوث هب"
+                  alt="قاعة معارض سعودية حديثة بهوية بوث هب - Booth Hub"
                   fill
                   priority
                   className="object-cover object-center transform hover:scale-[1.02] transition-transform duration-700 ease-out"
                   sizes="(max-width: 1024px) 100vw, 53vw"
                 />
                 
-                {/* Gentle gradient blend towards the right text edge */}
-                <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-white/20 to-transparent pointer-events-none hidden lg:block"></div>
+                {/* Soft natural edge lighting */}
+                <div className="absolute inset-0 rounded-[2rem] sm:rounded-[2.5rem] ring-1 ring-inset ring-black/5 pointer-events-none"></div>
               </div>
             </div>
           </motion.div>
 
-          {/* Right Side: Typography & Buttons (47% width on Desktop) */}
-          <motion.div 
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full lg:w-[47%] text-right flex flex-col items-start lg:items-start"
-          >
-            
-            {/* Top Small Badge */}
-            <motion.div 
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.5 }}
-              className="inline-flex items-center gap-2 bg-[#F4F8FF] border border-[#086BEE]/20 px-4 py-1.5 rounded-full text-xs font-bold text-[#086BEE] mb-6 shadow-sm"
-            >
-              <span className="w-2 h-2 rounded-full bg-[#086BEE] animate-pulse"></span>
-              <span>المنصة الذكية لإدارة وحجز بوثات المعارض في المملكة</span>
-            </motion.div>
-
-            {/* Main Heading: Alexandria Bold */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.25rem] font-bold leading-[1.25] text-[#082B78] mb-6 tracking-tight">
-              <span>مساحتك في</span>
-              <br />
-              <span>المعرض القادم</span>
-              <br />
-              <span className="text-[#086BEE]">تبدأ من هنا</span>
-            </h1>
-
-            {/* Description Paragraph */}
-            <p className="text-[16px] sm:text-[17px] text-[#65789A] leading-[1.8] max-w-xl mb-8">
-              اكتشف المعارض القادمة، استعرض البوثات المتاحة، واحجز مساحتك بسهولة مع توصيات ذكية مدعومة بنماذج Gemini.
-            </p>
-
-            {/* Main Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-              
-              {/* Button 1: Explore Exhibitions (Bright Blue, White Text with RTL Arrow) */}
-              <Link 
-                href="/explore" 
-                className="group px-8 py-4 bg-[#086BEE] text-white rounded-2xl font-bold text-[15px] hover:bg-[#086BEE]/90 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-250 shadow-lg shadow-[#086BEE]/25 flex items-center justify-center gap-3"
-              >
-                <span>استكشف المعارض</span>
-                <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform duration-250" />
-              </Link>
-
-              {/* Button 2: Smart AI Assistant (White, Thin Blue Border, Navy Text with Coral Icon) */}
-              <Link 
-                href="/ai-assistant" 
-                className="px-7 py-4 bg-white text-[#082B78] border border-[#086BEE]/50 rounded-2xl font-bold text-[15px] hover:border-[#086BEE] hover:bg-[#F4F8FF] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-250 shadow-sm flex items-center justify-center gap-2.5"
-              >
-                <Sparkles size={18} className="text-[#FF6257] shrink-0" />
-                <span>المساعد الذكي</span>
-              </Link>
-            </div>
-
-          </motion.div>
-
         </div>
 
-        {/* Feature Cards Section: 3 equal horizontal cards directly below Hero */}
+        {/* Feature Cards Section: 3 equal horizontal cards directly below Hero (Preserved) */}
         <div className="mt-16 lg:mt-24">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
             
-            {/* Card 1 - Right Side: Seamless Experience */}
+            {/* Card 1: Seamless Experience */}
             <motion.div 
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
@@ -133,7 +154,7 @@ export default function HeroSection() {
               </p>
             </motion.div>
 
-            {/* Card 2 - Center: Integrated Management */}
+            {/* Card 2: Integrated Management */}
             <motion.div 
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
@@ -151,7 +172,7 @@ export default function HeroSection() {
               </p>
             </motion.div>
 
-            {/* Card 3 - Left Side: All Exhibitions in One Place */}
+            {/* Card 3: All Exhibitions in One Place */}
             <motion.div 
               initial={{ opacity: 0, y: 25 }}
               animate={{ opacity: 1, y: 0 }}
@@ -165,7 +186,7 @@ export default function HeroSection() {
                 جميع المعارض في مكان واحد
               </h3>
               <p className="text-sm text-[#65789A] leading-relaxed mt-auto">
-                استكشف المعارض واحجز البوثات بسهولة ومن أي مكان.
+                ابحث في مختلف الفئات والمناطق واعثر على مساحتك بسهولة.
               </p>
             </motion.div>
 

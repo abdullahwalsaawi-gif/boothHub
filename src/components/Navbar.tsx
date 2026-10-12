@@ -56,22 +56,13 @@ export default function Navbar() {
       <div className="container mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
         
         {/* Right side (RTL): Booth Hub Official Logo */}
-        <div className="flex items-center gap-3">
-          <Link href="/" className="flex items-center gap-3 group">
-            {/* Geometric icon: Blue & Coral brand icon */}
-            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#086BEE] to-[#082B78] flex items-center justify-center shadow-md shadow-[#086BEE]/20 transition-transform duration-300 group-hover:scale-105">
-              <span className="text-white font-black text-xl tracking-tight">B</span>
-              <span className="absolute -bottom-1 -left-1 w-3.5 h-3.5 rounded-full bg-[#FF6257] border-2 border-white shadow-sm"></span>
-            </div>
-            
-            <div className="flex flex-col text-right">
-              <span className="font-extrabold text-xl text-[#082B78] leading-none tracking-tight">
-                بوث هب
-              </span>
-              <span className="text-[11px] font-semibold text-[#65789A] tracking-wider uppercase mt-0.5">
-                Booth Hub
-              </span>
-            </div>
+        <div className="flex items-center">
+          <Link href="/" className="flex items-center group py-1" aria-label="بوث هب | Booth Hub">
+            <img 
+              src="/branding/logo.png" 
+              alt="بوث هب | Booth Hub" 
+              className="h-10 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+            />
           </Link>
         </div>
 
