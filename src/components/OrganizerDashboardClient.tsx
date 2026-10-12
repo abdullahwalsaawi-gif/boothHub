@@ -37,12 +37,18 @@ import {
   DollarSign,
   PackageCheck,
   AlertTriangle,
-  Info
+  Info,
+  MoreVertical,
+  Trash2,
+  EyeOff,
+  Edit3
 } from 'lucide-react';
-import { Exhibition } from '@/app/actions/exhibitions';
+import { Exhibition, deleteExhibition, toggleExhibitionVisibility, getOrganizerExhibitions } from '@/app/actions/exhibitions';
 import { BookingRecord, OrganizerBoothRecord, updateBookingStatus } from '@/app/actions/bookings';
 import { signOut } from '@/app/actions/auth';
+import { getExhibitionImage } from '@/lib/utils';
 import CreateExhibitionModal from '@/components/CreateExhibitionModal';
+import EditExhibitionModal from '@/components/EditExhibitionModal';
 
 type TabType = 'overview' | 'exhibitions' | 'booths' | 'bookings' | 'exhibitors' | 'analytics' | 'ai' | 'notifications' | 'settings';
 
@@ -87,11 +93,22 @@ export default function OrganizerDashboardClient({
   // Exhibitors Search State
   const [exhibitorSearch, setExhibitorSearch] = useState('');
 
+  // Exhibition Management State (Safe Delete, Hide/Show, Edit, Dropdown)
+  const [openMenuExhId, setOpenMenuExhId] = useState<string | null>(null);
+  const [editingExhibition, setEditingExhibition] = useState<Exhibition | null>(null);
+  const [hidingExhibition, setHidingExhibition] = useState<Exhibition | null>(null);
+  const [deleteExhibitionModal, setDeleteExhibitionModal] = useState<Exhibition | null>(null);
+  const [deleteConfirmTitleInput, setDeleteConfirmTitleInput] = useState('');
+  const [deleteBlockedModal, setDeleteBlockedModal] = useState<{ exhibition: Exhibition; count: number } | null>(null);
+  const [exhibitionFilterTab, setExhibitionFilterTab] = useState<'all' | 'published' | 'hidden'>('all');
+  const [isExhibitionActionLoading, setIsExhibitionActionLoading] = useState(false);
+
   // Transitions
   const [isPending, startTransition] = useTransition();
 
   // Metrics Calculations
-  const activeExhibitionsCount = exhibitions.length;
+  const activeExhibitionsCount = exhibitions.filter(e => e.status === 'published').length;
+  const hiddenExhibitionsCount = exhibitions.filter(e => e.status === 'hidden' || e.status === 'draft').length;
   const totalBoothsCount = booths.length > 0 
     ? booths.length 
     : exhibitions.reduce((acc, curr) => acc + (curr.total_booths || 0), 0);
@@ -108,6 +125,73 @@ export default function OrganizerDashboardClient({
   const confirmedRevenue = bookings
     .filter(b => b.status === 'confirmed')
     .reduce((acc, b) => acc + b.total_amount, 0);
+
+  // Exhibition action handlers
+  const handleToggleHide = async (ex: Exhibition) => {
+    setIsExhibitionActionLoading(true);
+    const newStatus = ex.status === 'published' ? 'hidden' : 'published';
+    const res = await toggleExhibitionVisibility(ex.id, newStatus);
+    setIsExhibitionActionLoading(false);
+    setHidingExhibition(null);
+    setOpenMenuExhId(null);
+    if (!res.success) {
+      setActionMessage({ text: res.error || 'فشل تحديث حالة المعرض', type: 'error' });
+    } else {
+      setExhibitions(prev => prev.map(item => item.id === ex.id ? { ...item, status: newStatus } : item));
+      setActionMessage({
+        text: newStatus === 'hidden' ? `تم إخفاء المعرض "${ex.title}" بنجاح` : `تم نشر المعرض "${ex.title}" بنجاح`,
+        type: 'success'
+      });
+    }
+  };
+
+  const handleDeleteRequest = (ex: Exhibition) => {
+    setOpenMenuExhId(null);
+    // Safety check: any active bookings (pending or confirmed)
+    const activeBookings = bookings.filter(b => b.exhibition_id === ex.id && ['pending', 'confirmed'].includes(b.status));
+    if (activeBookings.length > 0) {
+      setDeleteBlockedModal({ exhibition: ex, count: activeBookings.length });
+    } else {
+      setDeleteConfirmTitleInput('');
+      setDeleteExhibitionModal(ex);
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteExhibitionModal) return;
+    if (deleteConfirmTitleInput.trim() !== deleteExhibitionModal.title.trim()) return;
+
+    setIsExhibitionActionLoading(true);
+    const res = await deleteExhibition(deleteExhibitionModal.id);
+    setIsExhibitionActionLoading(false);
+
+    if (!res.success) {
+      setActionMessage({ text: res.error || 'فشل حذف المعرض', type: 'error' });
+      setDeleteExhibitionModal(null);
+    } else {
+      const deletedTitle = deleteExhibitionModal.title;
+      setExhibitions(prev => prev.filter(e => e.id !== deleteExhibitionModal.id));
+      setDeleteExhibitionModal(null);
+      setActionMessage({ text: `تم حذف المعرض "${deletedTitle}" بنجاح`, type: 'success' });
+    }
+  };
+
+  const handleRefreshExhibitions = async () => {
+    const updated = await getOrganizerExhibitions();
+    if (updated) {
+      setExhibitions(updated);
+    }
+  };
+
+  const displayedExhibitions = useMemo(() => {
+    if (exhibitionFilterTab === 'published') {
+      return exhibitions.filter(e => e.status === 'published');
+    }
+    if (exhibitionFilterTab === 'hidden') {
+      return exhibitions.filter(e => e.status === 'hidden' || e.status === 'draft');
+    }
+    return exhibitions;
+  }, [exhibitions, exhibitionFilterTab]);
 
   // Potential pipeline from pending bookings
   const pendingRevenue = bookings
@@ -743,59 +827,70 @@ export default function OrganizerDashboardClient({
                     const exRate = exTotal > 0 ? Math.round((exBooked / exTotal) * 100) : 0;
 
                     return (
-                      <div key={ex.id} className="bg-white rounded-3xl border border-slate-200/80 p-5 shadow-xs hover:shadow-md transition-all">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full mb-1.5 inline-block">
+                      <div key={ex.id} className="bg-white rounded-3xl border border-slate-200/80 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group">
+                        <div className="relative h-32 w-full bg-slate-100 overflow-hidden">
+                          <img
+                            src={getExhibitionImage(ex)}
+                            alt={ex.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+                          <div className="absolute top-2.5 right-2.5 left-2.5 flex items-center justify-between">
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-sm ${
+                              ex.status === 'published' ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-white'
+                            }`}>
+                              {ex.status === 'published' ? 'منشور' : 'مخفي'}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-800 bg-white/90 px-2 py-0.5 rounded-full backdrop-blur-sm">
                               {ex.category}
                             </span>
-                            <h4 className="font-bold text-base text-[#102E70] line-clamp-1">{ex.title}</h4>
-                          </div>
-                          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
-                            منشور
-                          </span>
-                        </div>
-
-                        <div className="text-xs text-slate-500 space-y-1 mb-4">
-                          <div className="flex items-center gap-1.5">
-                            <MapPin size={13} className="text-slate-400" />
-                            <span>{ex.city} - {ex.venue}</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <Calendar size={13} className="text-slate-400" />
-                            <span>{ex.start_date} إلى {ex.end_date}</span>
                           </div>
                         </div>
 
-                        {/* Occupancy bar */}
-                        <div className="bg-slate-50 p-3 rounded-2xl mb-4">
-                          <div className="flex justify-between text-xs font-bold mb-1.5">
-                            <span className="text-slate-600">نسبة الإشغال</span>
-                            <span className="text-[#0868E9]">{exRate}%</span>
-                          </div>
-                          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                            <div className="bg-[#0868E9] h-full rounded-full transition-all" style={{ width: `${exRate}%` }}></div>
-                          </div>
-                          <div className="flex justify-between text-[11px] text-slate-400 mt-2">
-                            <span>{exBooked} بوث محجوز</span>
-                            <span>{exTotal} إجمالي البوثات</span>
-                          </div>
-                        </div>
+                        <div className="p-4 flex-1 flex flex-col">
+                          <h4 className="font-bold text-base text-[#102E70] line-clamp-1 mb-2" title={ex.title}>{ex.title}</h4>
 
-                        {/* Action links */}
-                        <div className="grid grid-cols-2 gap-2">
-                          <Link
-                            href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
-                            className="py-2 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs"
-                          >
-                            تعديل المخطط
-                          </Link>
-                          <Link
-                            href={`/explore/${ex.id}`}
-                            className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors"
-                          >
-                            معاينة
-                          </Link>
+                          <div className="text-xs text-slate-500 space-y-1 mb-4">
+                            <div className="flex items-center gap-1.5">
+                              <MapPin size={13} className="text-slate-400 shrink-0" />
+                              <span className="line-clamp-1">{ex.city} - {ex.venue}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <Calendar size={13} className="text-slate-400 shrink-0" />
+                              <span>{ex.start_date?.split('T')[0]} إلى {ex.end_date?.split('T')[0]}</span>
+                            </div>
+                          </div>
+
+                          {/* Occupancy bar */}
+                          <div className="bg-slate-50 p-3 rounded-2xl mb-4 mt-auto">
+                            <div className="flex justify-between text-xs font-bold mb-1.5">
+                              <span className="text-slate-600">نسبة الإشغال</span>
+                              <span className="text-[#0868E9]">{exRate}%</span>
+                            </div>
+                            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                              <div className="bg-[#0868E9] h-full rounded-full transition-all" style={{ width: `${exRate}%` }}></div>
+                            </div>
+                            <div className="flex justify-between text-[11px] text-slate-400 mt-2">
+                              <span>{exBooked} بوث محجوز</span>
+                              <span>{exTotal} إجمالي البوثات</span>
+                            </div>
+                          </div>
+
+                          {/* Action links */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <Link
+                              href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
+                              className="py-2 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs"
+                            >
+                              تعديل المخطط
+                            </Link>
+                            <Link
+                              href={`/explore/${ex.id}`}
+                              className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors"
+                            >
+                              معاينة
+                            </Link>
+                          </div>
                         </div>
                       </div>
                     );
@@ -817,18 +912,68 @@ export default function OrganizerDashboardClient({
                 <CreateExhibitionModal />
               </div>
 
-              {exhibitions.length === 0 ? (
+              {/* Status Filter Pills */}
+              <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto">
+                <button
+                  onClick={() => setExhibitionFilterTab('all')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    exhibitionFilterTab === 'all'
+                      ? 'bg-[#0868E9] text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  الكل ({exhibitions.length})
+                </button>
+                <button
+                  onClick={() => setExhibitionFilterTab('published')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    exhibitionFilterTab === 'published'
+                      ? 'bg-emerald-600 text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  المنشورة ({activeExhibitionsCount})
+                </button>
+                <button
+                  onClick={() => setExhibitionFilterTab('hidden')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    exhibitionFilterTab === 'hidden'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  المخفية ({hiddenExhibitionsCount})
+                </button>
+              </div>
+
+              {/* Backdrop to close 3-dots dropdown */}
+              {openMenuExhId && (
+                <div 
+                  className="fixed inset-0 z-20" 
+                  onClick={() => setOpenMenuExhId(null)} 
+                />
+              )}
+
+              {displayedExhibitions.length === 0 ? (
                 <div className="bg-white rounded-3xl border border-slate-200 p-12 text-center">
                   <Store size={48} className="text-slate-300 mx-auto mb-3" />
-                  <h3 className="font-bold text-base text-[#102E70] mb-1">لم تقم بإضافة أي معارض بعد</h3>
+                  <h3 className="font-bold text-base text-[#102E70] mb-1">
+                    {exhibitionFilterTab === 'published' 
+                      ? 'لا توجد معارض منشورة حالياً' 
+                      : exhibitionFilterTab === 'hidden'
+                      ? 'لا توجد معارض مخفية حالياً'
+                      : 'لم تقم بإضافة أي معارض بعد'}
+                  </h3>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto mb-6">
-                    ابدأ بإنشاء معرض جديد لإضافة الصالات وتوليد البوثات واستقبال الحجوزات.
+                    {exhibitionFilterTab === 'all' 
+                      ? 'ابدأ بإنشاء معرض جديد لإضافة الصالات وتوليد البوثات واستقبال الحجوزات.'
+                      : 'يمكنك إدارة ظهور معارضك في أي وقت عبر قائمة الإجراءات.'}
                   </p>
-                  <CreateExhibitionModal />
+                  {exhibitionFilterTab === 'all' && <CreateExhibitionModal />}
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {exhibitions.map(ex => {
+                  {displayedExhibitions.map(ex => {
                     const exBooths = booths.filter(b => b.exhibition_id === ex.id);
                     const exTotal = exBooths.length || ex.total_booths || 0;
                     const exBooked = exBooths.filter(b => b.status === 'booked').length;
@@ -836,90 +981,224 @@ export default function OrganizerDashboardClient({
                     const exRate = exTotal > 0 ? Math.round((exBooked / exTotal) * 100) : 0;
 
                     return (
-                      <div key={ex.id} className="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs hover:shadow-md transition-all flex flex-col">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-xs font-bold text-[#0868E9] bg-blue-50 px-3 py-1 rounded-full">
-                            {ex.category}
-                          </span>
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">
-                            {ex.status === 'published' ? 'منشور للعامة' : 'مسودة'}
-                          </span>
-                        </div>
-
-                        <h3 className="font-extrabold text-lg text-[#102E70] mb-2">{ex.title}</h3>
+                      <div key={ex.id} className="bg-white rounded-3xl border border-slate-200/90 overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col group">
                         
-                        <div className="text-xs text-slate-500 space-y-1.5 mb-5">
-                          <div className="flex items-center gap-2">
-                            <MapPin size={14} className="text-slate-400" />
-                            <span>{ex.city} - {ex.venue}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Calendar size={14} className="text-slate-400" />
-                            <span>{ex.start_date} إلى {ex.end_date}</span>
-                          </div>
-                        </div>
-
-                        {/* Occupancy card */}
-                        <div className="bg-slate-50 p-4 rounded-2xl mb-6 mt-auto">
-                          <div className="flex justify-between items-center text-xs font-bold mb-2">
-                            <span className="text-slate-600">نسبة الإشغال</span>
-                            <span className="text-[#0868E9] font-extrabold text-sm">{exRate}%</span>
-                          </div>
-                          <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-3">
-                            <div className="bg-[#0868E9] h-full rounded-full" style={{ width: `${exRate}%` }}></div>
-                          </div>
-                          <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                            <div className="bg-white p-2 rounded-xl border border-slate-100">
-                              <span className="text-slate-400 block text-[10px]">الإجمالي</span>
-                              <span className="font-bold text-slate-700">{exTotal}</span>
-                            </div>
-                            <div className="bg-white p-2 rounded-xl border border-slate-100">
-                              <span className="text-slate-400 block text-[10px]">المحجوز</span>
-                              <span className="font-bold text-emerald-600">{exBooked}</span>
-                            </div>
-                            <div className="bg-white p-2 rounded-xl border border-slate-100">
-                              <span className="text-slate-400 block text-[10px]">معلقة</span>
-                              <span className="font-bold text-amber-600">{exPending}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* 4 Action Buttons as explicitly requested */}
-                        <div className="space-y-2">
-                          <Link
-                            href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
-                            className="w-full py-2.5 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs flex items-center justify-center gap-2"
-                          >
-                            <Layers size={15} />
-                            <span>إدارة المخطط والبوثات</span>
-                          </Link>
+                        {/* Exhibition Cover Image */}
+                        <div className="relative h-44 w-full bg-slate-100 overflow-hidden">
+                          <img
+                            src={getExhibitionImage(ex)}
+                            alt={ex.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
                           
-                          <div className="grid grid-cols-3 gap-2">
-                            <button
-                              onClick={() => {
-                                setBoothExhFilter(ex.id);
-                                setActiveTab('booths');
-                              }}
-                              className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors"
-                            >
-                              إدارة البوثات
-                            </button>
-                            <button
-                              onClick={() => {
-                                setBookingExhFilter(ex.id);
-                                setActiveTab('bookings');
-                              }}
-                              className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors"
-                            >
-                              عرض الحجوزات
-                            </button>
-                            <Link
-                              href={`/explore/${ex.id}`}
-                              className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors flex items-center justify-center"
-                            >
-                              معاينة
-                            </Link>
+                          {/* Top Badges */}
+                          <div className="absolute top-3 right-3 left-3 flex items-center justify-between pointer-events-none">
+                            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full backdrop-blur-md shadow-xs ${
+                              ex.status === 'published'
+                                ? 'bg-emerald-500/95 text-white'
+                                : 'bg-amber-500/95 text-white'
+                            }`}>
+                              {ex.status === 'published' ? 'منشور للعامة' : 'مخفي عن العارضين'}
+                            </span>
+                            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/90 text-slate-800 backdrop-blur-md shadow-xs">
+                              {ex.category}
+                            </span>
                           </div>
+                        </div>
+
+                        {/* Card Body */}
+                        <div className="p-5 flex-1 flex flex-col">
+                          
+                          {/* Title & 3-dots Menu */}
+                          <div className="flex items-start justify-between gap-2 mb-3 relative">
+                            <h3 className="font-extrabold text-base text-[#102E70] line-clamp-1 flex-1" title={ex.title}>
+                              {ex.title}
+                            </h3>
+
+                            {/* 3-dots Trigger Button */}
+                            <div className="relative">
+                              <button
+                                type="button"
+                                onClick={() => setOpenMenuExhId(openMenuExhId === ex.id ? null : ex.id)}
+                                className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                                aria-label="خيارات المعرض"
+                              >
+                                <MoreVertical size={18} />
+                              </button>
+
+                              {/* 3-dots Dropdown Menu */}
+                              {openMenuExhId === ex.id && (
+                                <div 
+                                  className="absolute left-0 top-8 z-30 w-48 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 text-right animate-in fade-in zoom-in-95 duration-150"
+                                  dir="rtl"
+                                >
+                                  {/* 1. View Exhibition */}
+                                  <Link
+                                    href={`/explore/${ex.id}`}
+                                    onClick={() => setOpenMenuExhId(null)}
+                                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#0868E9] transition-colors"
+                                  >
+                                    <Eye size={14} className="text-slate-400" />
+                                    <span>عرض المعرض</span>
+                                  </Link>
+
+                                  {/* 2. Edit Exhibition */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingExhibition(ex);
+                                      setOpenMenuExhId(null);
+                                    }}
+                                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#0868E9] transition-colors w-full text-right cursor-pointer"
+                                  >
+                                    <Edit3 size={14} className="text-slate-400" />
+                                    <span>تعديل بيانات المعرض</span>
+                                  </button>
+
+                                  {/* 3. Manage Booths */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setBoothExhFilter(ex.id);
+                                      setActiveTab('booths');
+                                      setOpenMenuExhId(null);
+                                    }}
+                                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#0868E9] transition-colors w-full text-right cursor-pointer"
+                                  >
+                                    <Store size={14} className="text-slate-400" />
+                                    <span>إدارة البوثات</span>
+                                  </button>
+
+                                  {/* 4. Manage Bookings */}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setBookingExhFilter(ex.id);
+                                      setActiveTab('bookings');
+                                      setOpenMenuExhId(null);
+                                    }}
+                                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-blue-50 hover:text-[#0868E9] transition-colors w-full text-right cursor-pointer"
+                                  >
+                                    <CalendarCheck2 size={14} className="text-slate-400" />
+                                    <span>إدارة الحجوزات</span>
+                                  </button>
+
+                                  {/* 5. Hide / Show Toggle */}
+                                  {ex.status === 'published' ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setHidingExhibition(ex);
+                                        setOpenMenuExhId(null);
+                                      }}
+                                      className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-amber-700 hover:bg-amber-50 transition-colors w-full text-right cursor-pointer"
+                                    >
+                                      <EyeOff size={14} className="text-amber-500" />
+                                      <span>إخفاء المعرض</span>
+                                    </button>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleToggleHide(ex)}
+                                      className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition-colors w-full text-right cursor-pointer"
+                                    >
+                                      <Eye size={14} className="text-emerald-500" />
+                                      <span>إظهار المعرض</span>
+                                    </button>
+                                  )}
+
+                                  <div className="border-t border-slate-100 my-1" />
+
+                                  {/* 6. Delete Exhibition */}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRequest(ex)}
+                                    className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors w-full text-right cursor-pointer"
+                                  >
+                                    <Trash2 size={14} className="text-red-500" />
+                                    <span>حذف المعرض</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Location & Dates */}
+                          <div className="text-xs text-slate-500 space-y-1.5 mb-5">
+                            <div className="flex items-center gap-2">
+                              <MapPin size={14} className="text-slate-400 shrink-0" />
+                              <span className="line-clamp-1">{ex.city} - {ex.venue}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Calendar size={14} className="text-slate-400 shrink-0" />
+                              <span>{ex.start_date?.split('T')[0]} إلى {ex.end_date?.split('T')[0]}</span>
+                            </div>
+                          </div>
+
+                          {/* Occupancy card */}
+                          <div className="bg-slate-50 p-4 rounded-2xl mb-5 mt-auto">
+                            <div className="flex justify-between items-center text-xs font-bold mb-2">
+                              <span className="text-slate-600">نسبة الإشغال</span>
+                              <span className="text-[#0868E9] font-extrabold text-sm">{exRate}%</span>
+                            </div>
+                            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden mb-3">
+                              <div className="bg-[#0868E9] h-full rounded-full transition-all duration-500" style={{ width: `${exRate}%` }}></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                              <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                <span className="text-slate-400 block text-[10px]">الإجمالي</span>
+                                <span className="font-bold text-slate-700">{exTotal}</span>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                <span className="text-slate-400 block text-[10px]">المحجوز</span>
+                                <span className="font-bold text-emerald-600">{exBooked}</span>
+                              </div>
+                              <div className="bg-white p-2 rounded-xl border border-slate-100">
+                                <span className="text-slate-400 block text-[10px]">معلقة</span>
+                                <span className="font-bold text-amber-600">{exPending}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="space-y-2">
+                            <Link
+                              href={`/dashboard/organizer/exhibitions/${ex.id}/floorplan`}
+                              className="w-full py-2.5 bg-[#0868E9] text-white text-xs font-bold rounded-xl text-center hover:bg-[#0868E9]/90 transition-colors shadow-xs flex items-center justify-center gap-2"
+                            >
+                              <Layers size={15} />
+                              <span>إدارة المخطط والبوثات</span>
+                            </Link>
+                            
+                            <div className="grid grid-cols-3 gap-2">
+                              <button
+                                onClick={() => {
+                                  setBoothExhFilter(ex.id);
+                                  setActiveTab('booths');
+                                }}
+                                className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors cursor-pointer"
+                              >
+                                إدارة البوثات
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setBookingExhFilter(ex.id);
+                                  setActiveTab('bookings');
+                                }}
+                                className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors cursor-pointer"
+                              >
+                                عرض الحجوزات
+                              </button>
+                              <Link
+                                href={`/explore/${ex.id}`}
+                                className="py-2 bg-slate-100 text-slate-700 text-xs font-semibold rounded-xl text-center hover:bg-slate-200 transition-colors flex items-center justify-center"
+                              >
+                                معاينة
+                              </Link>
+                            </div>
+                          </div>
+
                         </div>
 
                       </div>
@@ -1819,6 +2098,161 @@ export default function OrganizerDashboardClient({
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* ━━━━━━━━━━━━━━━━━━━━ Modals: Edit, Hide, Delete Blocked, Safe Delete ━━━━━━━━━━━━━━━━━━━━ */}
+
+      {/* 1. Edit Exhibition Modal */}
+      <EditExhibitionModal
+        exhibition={editingExhibition}
+        isOpen={!!editingExhibition}
+        onClose={() => setEditingExhibition(null)}
+        onSuccess={handleRefreshExhibitions}
+      />
+
+      {/* 2. Hide Confirmation Modal */}
+      {hidingExhibition && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mb-4">
+              <EyeOff size={24} />
+            </div>
+
+            <h3 className="text-lg font-bold text-[#102E70] mb-2">إخفاء المعرض</h3>
+            <p className="text-xs text-slate-500 font-bold mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              {hidingExhibition.title}
+            </p>
+
+            <p className="text-xs text-slate-600 leading-relaxed mb-4">
+              هل تريد إخفاء هذا المعرض؟ لن يظهر المعرض للعارضين أثناء فترة الإخفاء، وستبقى بياناته وبوثاتك وحجوزاته محفوظة.
+            </p>
+
+            {bookings.some(b => b.exhibition_id === hidingExhibition.id && ['pending', 'confirmed'].includes(b.status)) && (
+              <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs flex items-center gap-2">
+                <AlertTriangle size={16} className="shrink-0 text-amber-600" />
+                <span>تنبيه: توجد حجوزات نشطة في هذا المعرض وستبقى التزاماتها قائمة.</span>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={isExhibitionActionLoading}
+                onClick={() => handleToggleHide(hidingExhibition)}
+                className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {isExhibitionActionLoading ? <Loader2 size={14} className="animate-spin" /> : null}
+                <span>تأكيد الإخفاء</span>
+              </button>
+              <button
+                type="button"
+                disabled={isExhibitionActionLoading}
+                onClick={() => setHidingExhibition(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 3. Delete Blocked Modal (Active Bookings Exist) */}
+      {deleteBlockedModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
+              <AlertTriangle size={24} />
+            </div>
+
+            <h3 className="text-lg font-bold text-[#102E70] mb-2">لا يمكن حذف المعرض</h3>
+            <p className="text-xs text-slate-500 font-bold mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+              {deleteBlockedModal.exhibition.title}
+            </p>
+
+            <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-800 rounded-2xl text-xs leading-relaxed">
+              لا يمكن حذف هذا المعرض لوجود حجوزات أو التزامات مرتبطة به. يمكنك إخفاؤه مؤقتًا أو معالجة الحجوزات أولًا.
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const target = deleteBlockedModal.exhibition;
+                  setDeleteBlockedModal(null);
+                  setHidingExhibition(target);
+                }}
+                className="flex-1 py-2.5 bg-[#0868E9] hover:bg-[#0868E9]/90 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <EyeOff size={14} />
+                <span>إخفاء المعرض بدلاً من ذلك</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteBlockedModal(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 4. Safe Delete Confirmation Modal (Title-Match Required) */}
+      {deleteExhibitionModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 text-right animate-in fade-in zoom-in-95 duration-200" dir="rtl">
+            <div className="w-12 h-12 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mb-4">
+              <Trash2 size={24} />
+            </div>
+
+            <h3 className="text-lg font-bold text-[#102E70] mb-1">تأكيد حذف المعرض نهائياً</h3>
+            <p className="text-xs text-red-600 font-medium mb-3">
+              تحذير: سيتم حذف المعرض وكافة بيانات صالاته وبوثاته بشكل نهائي ولا يمكن التراجع عن هذا الإجراء.
+            </p>
+
+            <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200 mb-4">
+              <span className="text-[11px] text-slate-400 block mb-1">اسم المعرض المراد حذفه:</span>
+              <p className="text-xs font-bold text-[#102E70] select-all">
+                {deleteExhibitionModal.title}
+              </p>
+            </div>
+
+            <div className="space-y-1.5 mb-5">
+              <label className="text-xs font-bold text-slate-700 block">
+                لتأكيد الحذف، اكتب اسم المعرض مطابقاً تماماً:
+              </label>
+              <input
+                type="text"
+                value={deleteConfirmTitleInput}
+                onChange={e => setDeleteConfirmTitleInput(e.target.value)}
+                placeholder={deleteExhibitionModal.title}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:border-red-500 font-medium"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={deleteConfirmTitleInput.trim() !== deleteExhibitionModal.title.trim() || isExhibitionActionLoading}
+                onClick={handleConfirmDelete}
+                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {isExhibitionActionLoading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                <span>حذف المعرض نهائياً</span>
+              </button>
+              <button
+                type="button"
+                disabled={isExhibitionActionLoading}
+                onClick={() => setDeleteExhibitionModal(null)}
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                إلغاء
+              </button>
+            </div>
           </div>
         </div>
       )}

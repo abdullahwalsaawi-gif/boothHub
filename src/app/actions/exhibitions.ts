@@ -2,6 +2,9 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { isUserExhibitionManager } from '@/app/actions/bookings'
+import { writeFile, mkdir } from 'fs/promises'
+import path from 'path'
 
 export type Exhibition = {
   id: string
@@ -17,7 +20,7 @@ export type Exhibition = {
   booking_start_date?: string
   booking_end_date?: string
   cover_image_url?: string
-  status: 'draft' | 'published' | 'cancelled' | 'completed'
+  status: 'draft' | 'published' | 'hidden' | 'cancelled' | 'completed'
   available_booths?: number
   total_booths?: number
   organization_name?: string
@@ -311,6 +314,15 @@ export async function createExhibition(formData: FormData) {
       return { success: false, error: 'يرجى استكمال جميع الحقول الإلزامية (اسم المعرض، التصنيف، المدينة، المقر، وتواريخ البداية والنهاية)' }
     }
 
+    let coverImageUrl = (formData.get('cover_image_url') as string)?.trim() || ''
+    const coverImageFile = formData.get('cover_image') as File | null
+    if (coverImageFile && typeof coverImageFile === 'object' && coverImageFile.size > 0) {
+      const uploadRes = await saveExhibitionCoverFile(coverImageFile)
+      if (uploadRes.success && uploadRes.url) {
+        coverImageUrl = uploadRes.url
+      }
+    }
+
     // Insert exhibition using the real columns present in Supabase exhibitions table
     const { data, error } = await supabase
       .from('exhibitions')
@@ -323,6 +335,7 @@ export async function createExhibition(formData: FormData) {
         venue,
         start_date: startDate,
         end_date: endDate,
+        cover_image_url: coverImageUrl || null,
         status
       })
       .select()
@@ -357,6 +370,63 @@ export async function createExhibition(formData: FormData) {
   } catch (err: any) {
     console.error('Unexpected error in createExhibition:', err)
     return { success: false, error: err.message || 'حدث خطأ غير متوقع أثناء إضافة المعرض' }
+  }
+}
+
+// Helper to save image file locally to public/uploads/exhibitions
+async function saveExhibitionCoverFile(file: File): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const validMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+    if (!validMimes.includes(file.type)) {
+      return { success: false, error: 'صيغة الصورة غير مدعومة. يرجى اختيار صورة بصيغة JPG أو PNG أو WebP' }
+    }
+
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    if (file.size > maxSize) {
+      return { success: false, error: 'حجم الصورة يتجاوز الحد المسموح (الحد الأقصى 5 ميجابايت)' }
+    }
+
+    const bytes = await file.arrayBuffer()
+    const buffer = Buffer.from(bytes)
+
+    const uploadsDir = path.join(process.cwd(), 'public', 'uploads', 'exhibitions')
+    await mkdir(uploadsDir, { recursive: true })
+
+    const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const fileName = `cover_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`
+    const filePath = path.join(uploadsDir, fileName)
+
+    await writeFile(filePath, buffer)
+    const publicUrl = `/uploads/exhibitions/${fileName}`
+
+    // Also attempt Supabase Storage if bucket exists (non-blocking fallback)
+    try {
+      const supabase = await createClient()
+      await supabase.storage.from('exhibitions').upload(fileName, buffer, {
+        contentType: file.type,
+        upsert: true
+      })
+    } catch {
+      // Supabase storage bucket may not exist, local upload is primary
+    }
+
+    return { success: true, url: publicUrl }
+  } catch (err: any) {
+    console.error('Error saving exhibition cover file:', err)
+    return { success: false, error: err.message || 'فشل حفظ ملف الصورة' }
+  }
+}
+
+// Server action to upload cover image separately
+export async function uploadExhibitionCoverImage(formData: FormData): Promise<{ success: boolean; url?: string; error?: string }> {
+  try {
+    const file = formData.get('image') as File | null
+    if (!file || typeof file !== 'object' || file.size === 0) {
+      return { success: false, error: 'يرجى اختيار ملف صورة صالح' }
+    }
+    return await saveExhibitionCoverFile(file)
+  } catch (err: any) {
+    return { success: false, error: err.message || 'حدث خطأ أثناء رفع الصورة' }
   }
 }
 
@@ -422,13 +492,185 @@ export async function getOrganizerExhibitions(): Promise<Exhibition[]> {
   }
 }
 
-// Secure delete exhibition
-export async function deleteExhibition(id: string) {
+// Update exhibition basic details and cover image
+export async function updateExhibition(formData: FormData): Promise<{ success: boolean; error?: string }> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
       return { success: false, error: 'يجب تسجيل الدخول كمنظم أولاً' }
+    }
+
+    const id = formData.get('id') as string
+    if (!id) {
+      return { success: false, error: 'معرّف المعرض مفقود' }
+    }
+
+    const isManager = await isUserExhibitionManager(user.id, user.email, id)
+    if (!isManager) {
+      return { success: false, error: 'ليس لديك صلاحية لتعديل هذا المعرض' }
+    }
+
+    const title = (formData.get('title') as string)?.trim()
+    const description = (formData.get('description') as string)?.trim()
+    const category = (formData.get('category') as string)?.trim()
+    const city = (formData.get('city') as string)?.trim()
+    const venue = (formData.get('venue') as string)?.trim()
+    const startDate = formData.get('startDate') as string
+    const endDate = formData.get('endDate') as string
+    let coverImageUrl = (formData.get('cover_image_url') as string)?.trim() || ''
+
+    const coverImageFile = formData.get('cover_image') as File | null
+    if (coverImageFile && typeof coverImageFile === 'object' && coverImageFile.size > 0) {
+      const uploadRes = await saveExhibitionCoverFile(coverImageFile)
+      if (uploadRes.success && uploadRes.url) {
+        coverImageUrl = uploadRes.url
+      }
+    }
+
+    if (!title || !category || !city || !venue || !startDate || !endDate) {
+      return { success: false, error: 'يرجى استكمال جميع الحقول الإلزامية (اسم المعرض، التصنيف، المدينة، المقر، والتواريخ)' }
+    }
+
+    const updatePayload: Record<string, any> = {
+      title,
+      description: description || '',
+      category,
+      city,
+      venue,
+      start_date: startDate,
+      end_date: endDate,
+      updated_at: new Date().toISOString()
+    }
+
+    if (coverImageUrl !== undefined) {
+      updatePayload.cover_image_url = coverImageUrl || null
+    }
+
+    const { error } = await supabase
+      .from('exhibitions')
+      .update(updatePayload)
+      .eq('id', id)
+
+    if (error) {
+      return { success: false, error: error.message || 'فشل تحديث بيانات المعرض' }
+    }
+
+    revalidatePath('/explore')
+    revalidatePath(`/explore/${id}`)
+    revalidatePath('/dashboard/organizer')
+
+    return { success: true }
+  } catch (err: any) {
+    console.error('Error updating exhibition:', err)
+    return { success: false, error: err.message || 'حدث خطأ أثناء تعديل المعرض' }
+  }
+}
+
+// Toggle exhibition visibility (Hide / Unhide)
+export async function toggleExhibitionVisibility(
+  id: string,
+  newStatus: 'published' | 'hidden'
+): Promise<{ success: boolean; status?: string; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'يجب تسجيل الدخول كمنظم أولاً' }
+    }
+
+    const isManager = await isUserExhibitionManager(user.id, user.email, id)
+    if (!isManager) {
+      return { success: false, error: 'ليس لديك صلاحية لإدارة ظهور هذا المعرض' }
+    }
+
+    // When re-publishing / unhiding, validate essential fields
+    if (newStatus === 'published') {
+      const { data: exh, error: fetchErr } = await supabase
+        .from('exhibitions')
+        .select('title, city, venue, start_date, end_date')
+        .eq('id', id)
+        .single()
+
+      if (fetchErr || !exh) {
+        return { success: false, error: 'تعذر العثور على بيانات المعرض' }
+      }
+
+      if (!exh.title || !exh.city || !exh.venue || !exh.start_date || !exh.end_date) {
+        return { 
+          success: false, 
+          error: 'لا يمكن نشر المعرض: يرجى استكمال البيانات الأساسية أولاً (العنوان، المدينة، المقر، وتواريخ البداية والنهاية).' 
+        }
+      }
+    }
+
+    // Try updating with newStatus ('published' | 'hidden')
+    let { error } = await supabase
+      .from('exhibitions')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', id)
+
+    // Fallback: If DB check constraint only accepts ('draft', 'published', ...) before migration runs, map 'hidden' to 'draft'
+    if (error && newStatus === 'hidden') {
+      const fallbackResult = await supabase
+        .from('exhibitions')
+        .update({ status: 'draft', updated_at: new Date().toISOString() })
+        .eq('id', id)
+      error = fallbackResult.error
+    }
+
+    if (error) {
+      return { success: false, error: error.message || 'فشل تحديث حالة ظهور المعرض' }
+    }
+
+    revalidatePath('/explore')
+    revalidatePath(`/explore/${id}`)
+    revalidatePath('/dashboard/organizer')
+
+    return { success: true, status: newStatus }
+  } catch (err: any) {
+    console.error('Error toggling exhibition visibility:', err)
+    return { success: false, error: err.message || 'حدث خطأ أثناء تغيير حالة المعرض' }
+  }
+}
+
+// Secure and safe delete exhibition
+export async function deleteExhibition(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'يجب تسجيل الدخول كمنظم أولاً' }
+    }
+
+    const isManager = await isUserExhibitionManager(user.id, user.email, id)
+    if (!isManager) {
+      return { success: false, error: 'ليس لديك صلاحية لحذف هذا المعرض' }
+    }
+
+    // Check for active or pending bookings or financial commitments
+    const { data: bookings, error: bookingsErr } = await supabase
+      .from('bookings')
+      .select('id, status')
+      .eq('exhibition_id', id)
+
+    if (bookings && bookings.length > 0) {
+      const hasActiveBookings = bookings.some(b => ['pending', 'confirmed'].includes(b.status))
+      if (hasActiveBookings) {
+        return {
+          success: false,
+          error: 'لا يمكن حذف هذا المعرض لوجود حجوزات أو التزامات مرتبطة به. يمكنك إخفاؤه مؤقتًا أو معالجة الحجوزات أولًا.'
+        }
+      }
+    }
+
+    // Clean up non-active bookings and related booths / floor plans if any
+    try {
+      await supabase.from('bookings').delete().eq('exhibition_id', id)
+      await supabase.from('booth_floor_plans').delete().eq('exhibition_id', id)
+      await supabase.from('booths').delete().eq('exhibition_id', id)
+    } catch (cleanupErr) {
+      console.warn('Notice cleaning up related exhibition records:', cleanupErr)
     }
 
     const { error } = await supabase
@@ -437,13 +679,14 @@ export async function deleteExhibition(id: string) {
       .eq('id', id)
 
     if (error) {
-      return { success: false, error: error.message }
+      return { success: false, error: error.message || 'فشل حذف المعرض من قاعدة البيانات' }
     }
 
     revalidatePath('/explore')
     revalidatePath('/dashboard/organizer')
     return { success: true }
   } catch (err: any) {
+    console.error('Error deleting exhibition:', err)
     return { success: false, error: err.message || 'حدث خطأ أثناء حذف المعرض' }
   }
 }

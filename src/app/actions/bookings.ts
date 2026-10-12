@@ -249,6 +249,20 @@ export async function createBooking(data: {
     }
   }
 
+  // 3. SERVER-SIDE CHECK: Ensure exhibition is published (not hidden or draft)
+  const { data: exRecord } = await supabase
+    .from('exhibitions')
+    .select('id, status, title')
+    .eq('id', targetExhibitionId)
+    .maybeSingle()
+
+  if (exRecord && exRecord.status !== 'published') {
+    return {
+      success: false,
+      error: 'عذراً! هذا المعرض غير متاح للحجز حالياً (المعرض مخفي أو قيد التجهيز).'
+    }
+  }
+
   // Attempt to call RPC first for atomic locking
   try {
     const { data: rpcData, error: rpcError } = await supabase.rpc('create_booth_booking', {

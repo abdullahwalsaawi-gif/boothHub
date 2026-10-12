@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { createExhibition } from '@/app/actions/exhibitions';
 import { SAUDI_REGIONS } from '@/lib/saudi-regions';
 import FloorplanEditor from '@/components/FloorplanEditor';
+import ImageUploadArea from '@/components/ImageUploadArea';
 
 export default function CreateExhibitionModal() {
   const router = useRouter();
@@ -231,6 +232,9 @@ export default function CreateExhibitionModal() {
                     />
                   </div>
                 </div>
+
+                {/* Cover Image Upload */}
+                <ImageUploadArea name="cover_image" />
 
                 <button 
                   type="submit"

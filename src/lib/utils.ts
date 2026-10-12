@@ -26,7 +26,12 @@ export function getExhibitionImage(
   ex: { id?: string; title?: string; category?: string; cover_image_url?: string | null }, 
   index?: number
 ): string {
-  if (ex.cover_image_url && (ex.cover_image_url.startsWith('http') || ex.cover_image_url.startsWith('/images/'))) {
+  if (ex.cover_image_url && (
+    ex.cover_image_url.startsWith('http') || 
+    ex.cover_image_url.startsWith('/images/') || 
+    ex.cover_image_url.startsWith('/uploads/') || 
+    ex.cover_image_url.startsWith('data:')
+  )) {
     return ex.cover_image_url;
   }
   
