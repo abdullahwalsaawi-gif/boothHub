@@ -57,11 +57,11 @@ export default function CTASection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-3xl sm:text-4xl lg:text-[44px] font-bold leading-tight tracking-tight mb-5 drop-shadow-sm"
+          className="text-3xl sm:text-4xl lg:text-[44px] font-bold leading-tight tracking-tight mb-5 drop-shadow-sm text-white"
         >
-          <span>جاهز تبدأ تجربتك مع </span>
+          <span className="text-white">جاهز تبدأ تجربتك مع </span>
           <span className="text-[#FF6257]">بوث هب</span>
-          <span>؟</span>
+          <span className="text-white">؟</span>
         </motion.h2>
 
         {/* Description */}

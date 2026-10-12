@@ -38,12 +38,12 @@ export default function Footer() {
   };
 
   return (
-    <footer className="relative bg-gradient-to-b from-[#091D49] to-[#0B2558] text-white pt-16 pb-10 overflow-hidden">
+    <footer className="relative bg-[#091D49] border-t border-white/[0.08] text-white pt-16 pb-10 overflow-hidden">
       
       {/* Decorative subtle ambient lights in footer */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-[#086BEE]/[0.04] blur-3xl"></div>
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 rounded-full bg-[#FF6257]/[0.03] blur-3xl"></div>
+        <div className="absolute top-0 right-1/4 w-96 h-96 rounded-full bg-[#086BEE]/[0.05] blur-3xl"></div>
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 rounded-full bg-[#FF6257]/[0.04] blur-3xl"></div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 relative z-10">
@@ -54,14 +54,16 @@ export default function Footer() {
           {/* Column 1: Platform Brand Identity (Rightmost in RTL) */}
           <div className="flex flex-col text-right">
             <Link href="/" className="inline-block mb-5 group">
-              <img
-                src="/branding/logo.png"
-                alt="بوث هب | Booth Hub"
-                className="h-10 sm:h-11 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
-              />
+              <div className="inline-flex items-center bg-white px-3.5 py-2 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
+                <img
+                  src="/branding/logo.png"
+                  alt="بوث هب | Booth Hub"
+                  className="h-9 sm:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                />
+              </div>
             </Link>
 
-            <p className="text-[#A2B4D6] text-[15px] leading-relaxed mb-6 font-normal max-w-sm">
+            <p className="text-[#CBD5E1] text-[15px] leading-relaxed mb-6 font-normal max-w-sm">
               منصة ذكية متكاملة لإدارة المعارض وحجز البوثات، تربط المنظمين بالعارضين لتجربة رقمية سلسة.
             </p>
 
@@ -73,7 +75,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="تواصل عبر واتساب"
-                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/80 hover:text-white hover:bg-[#086BEE] hover:border-[#086BEE] transition-all duration-200"
+                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/90 hover:text-white hover:bg-[#086BEE] hover:border-[#086BEE] transition-all duration-200"
               >
                 <MessageCircle size={16} />
               </a>
@@ -84,7 +86,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="حساب تويتر / إكس"
-                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/80 hover:text-white hover:bg-[#086BEE] hover:border-[#086BEE] transition-all duration-200"
+                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/90 hover:text-white hover:bg-[#086BEE] hover:border-[#086BEE] transition-all duration-200"
               >
                 <span className="font-bold text-xs">𝕏</span>
               </a>
@@ -95,7 +97,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="حساب انستغرام"
-                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/80 hover:text-white hover:bg-[#FF6257] hover:border-[#FF6257] transition-all duration-200"
+                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/90 hover:text-white hover:bg-[#FF6257] hover:border-[#FF6257] transition-all duration-200"
               >
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                   <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.13-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
@@ -106,7 +108,7 @@ export default function Footer() {
               <a
                 href="/"
                 aria-label="الموقع الإلكتروني"
-                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/80 hover:text-white hover:bg-[#086BEE] hover:border-[#086BEE] transition-all duration-200"
+                className="w-9 h-9 rounded-full border border-white/20 bg-white/5 flex items-center justify-center text-white/90 hover:text-white hover:bg-[#086BEE] hover:border-[#086BEE] transition-all duration-200"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="10" />
@@ -120,10 +122,10 @@ export default function Footer() {
           <div className="flex flex-col text-right">
             <div className="mb-5 inline-block">
               <h3 className="text-lg font-bold text-white mb-2">المنصة</h3>
-              <span className="block w-6 h-[2.5px] bg-[#FF6257] rounded-full"></span>
+              <span className="block w-7 h-[3px] bg-[#FF6257] rounded-full"></span>
             </div>
 
-            <ul className="flex flex-col gap-3 text-[15px] text-[#A2B4D6]">
+            <ul className="flex flex-col gap-3 text-[15px] text-[#CBD5E1]">
               <li>
                 <Link href="/explore" className="hover:text-white hover:translate-x-[-3px] transition-all duration-200 inline-block">
                   استكشف المعارض
@@ -151,10 +153,10 @@ export default function Footer() {
           <div className="flex flex-col text-right">
             <div className="mb-5 inline-block">
               <h3 className="text-lg font-bold text-white mb-2">الدعم</h3>
-              <span className="block w-6 h-[2.5px] bg-[#FF6257] rounded-full"></span>
+              <span className="block w-7 h-[3px] bg-[#FF6257] rounded-full"></span>
             </div>
 
-            <ul className="flex flex-col gap-3 text-[15px] text-[#A2B4D6]">
+            <ul className="flex flex-col gap-3 text-[15px] text-[#CBD5E1]">
               <li>
                 <Link href="/#faq" className="hover:text-white hover:translate-x-[-3px] transition-all duration-200 inline-block">
                   الأسئلة الشائعة
@@ -182,10 +184,10 @@ export default function Footer() {
           <div className="flex flex-col text-right">
             <div className="mb-5 inline-block">
               <h3 className="text-lg font-bold text-white mb-2">النشرة البريدية</h3>
-              <span className="block w-6 h-[2.5px] bg-[#FF6257] rounded-full"></span>
+              <span className="block w-7 h-[3px] bg-[#FF6257] rounded-full"></span>
             </div>
 
-            <p className="text-[#A2B4D6] text-[15px] mb-4 font-normal">
+            <p className="text-[#CBD5E1] text-[15px] mb-4 font-normal">
               اشترك ليصلك جديد المعارض والفعاليات.
             </p>
 
@@ -200,10 +202,10 @@ export default function Footer() {
                   }}
                   placeholder="البريد الإلكتروني"
                   disabled={status === 'loading'}
-                  className="w-full bg-[#122A63]/70 border border-white/15 rounded-xl px-4 py-3 pl-11 text-sm text-white placeholder-[#7893C4] focus:outline-none focus:border-[#086BEE] focus:ring-1 focus:ring-[#086BEE] transition-all"
+                  className="w-full bg-[#122A63] border border-white/20 rounded-xl px-4 py-3 pl-11 text-sm text-white placeholder-[#89A1CC] focus:outline-none focus:border-[#086BEE] focus:ring-1 focus:ring-[#086BEE] transition-all"
                   dir="rtl"
                 />
-                <Mail size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#7893C4] pointer-events-none" />
+                <Mail size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#89A1CC] pointer-events-none" />
               </div>
 
               <button
@@ -234,17 +236,17 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar: Divider & Copyright */}
-        <div className="border-t border-white/10 pt-7 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#89A1CC]">
-          <p className="order-2 sm:order-1">
+        <div className="border-t border-white/10 pt-7 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#CBD5E1]">
+          <p className="order-2 sm:order-1 text-[#CBD5E1]">
             جميع الحقوق محفوظة © 2026 بوث هب
           </p>
 
           <div className="flex items-center gap-3 order-1 sm:order-2">
-            <Link href="/privacy" className="hover:text-white transition-colors">
+            <Link href="/privacy" className="hover:text-white transition-colors text-[#CBD5E1]">
               سياسة الخصوصية
             </Link>
             <span className="text-white/20">|</span>
-            <Link href="/terms" className="hover:text-white transition-colors">
+            <Link href="/terms" className="hover:text-white transition-colors text-[#CBD5E1]">
               الشروط والأحكام
             </Link>
           </div>
