@@ -38,91 +38,115 @@ export default async function Explore({
         {/* Decorative ambient background accents */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden -z-0">
           <div className="absolute top-10 right-[-5%] w-96 h-96 rounded-full bg-[#086BEE]/[0.05] blur-3xl"></div>
-          <div className="absolute bottom-10 left-[-5%] w-96 h-96 rounded-full bg-[#FF6257]/[0.04] blur-3xl"></div>
+          <div className="absolute top-1/3 left-[-5%] w-96 h-96 rounded-full bg-[#FF6257]/[0.03] blur-3xl"></div>
+          <div className="absolute bottom-10 right-[15%] w-80 h-80 rounded-full bg-[#086BEE]/[0.04] blur-3xl"></div>
         </div>
 
-        <div className="container mx-auto px-4 md:px-8 relative z-10">
+        <div className="container mx-auto px-4 md:px-8 relative z-10 max-w-7xl">
           
-          {/* Header Title */}
-          <div className="mb-12 text-center max-w-2xl mx-auto">
-            {/* Top decorative element */}
-            <div className="flex items-center justify-center gap-2 mb-3">
-              <span className="w-8 h-[3px] bg-[#086BEE] rounded-full"></span>
-              <span className="w-2 h-2 rounded-full bg-[#086BEE]"></span>
-              <span className="w-8 h-[3px] bg-[#FF6257] rounded-full"></span>
+          {/* Header Title Section */}
+          <div className="mb-10 lg:mb-12 text-center max-w-3xl mx-auto">
+            {/* Top decorative element from brand identity */}
+            <div className="inline-flex items-center justify-center gap-2 mb-4 px-4 py-1.5 rounded-full bg-white/80 border border-[#086BEE]/15 shadow-sm backdrop-blur-sm">
+              <span className="w-6 h-[3px] bg-[#086BEE] rounded-full"></span>
+              <span className="w-2 h-2 rounded-full bg-[#FF6257]"></span>
+              <span className="text-xs font-bold text-[#082B78] tracking-wide">منصة بوث هب</span>
+              <span className="w-2 h-2 rounded-full bg-[#FF6257]"></span>
+              <span className="w-6 h-[3px] bg-[#086BEE] rounded-full"></span>
             </div>
 
-            <h1 className="text-3xl md:text-4xl lg:text-[42px] font-bold text-[#082B78] mb-3 tracking-tight">
-              <span>استكشف </span>
-              <span className="text-[#086BEE]">المعارض</span>
+            {/* Gradient Title */}
+            <h1 className="text-3xl md:text-5xl font-extrabold mb-4 tracking-tight">
+              <span className="bg-gradient-to-r from-[#082B78] via-[#086BEE] to-[#082B78] bg-clip-text text-transparent">
+                استكشف المعارض
+              </span>
             </h1>
-            <p className="text-[#71809D] text-base leading-relaxed">
-              اكتشف المعارض المتاحة واحجز مساحتك مباشرة مع توصيات ذكية مدعومة بمنصة بوث هب.
+
+            {/* Subtitle */}
+            <p className="text-[#71809D] text-base md:text-lg leading-relaxed max-w-2xl mx-auto font-medium">
+              اكتشف المعارض القادمة، واستعرض المساحات المتاحة، واختر البوث المناسب لنشاطك التجاري.
             </p>
           </div>
 
-          {/* Search & Filters Form */}
-          <form method="GET" action="/explore" className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] shadow-sm mb-10 flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-[#71809D]" size={20} />
-              <input 
-                type="text" 
-                name="search"
-                defaultValue={search || ''}
-                placeholder="ابحث باسم المعرض..." 
-                className="w-full pl-4 pr-12 py-3 bg-[#F4F8FF] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#086BEE] focus:bg-white transition-colors text-right"
-              />
-            </div>
-            <div className="flex flex-wrap sm:flex-nowrap gap-3">
-              <select 
-                name="city"
-                defaultValue={city || 'المدينة'}
-                className="px-4 py-3 bg-[#F4F8FF] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#086BEE] outline-none min-w-[130px] font-medium text-[#082B78]"
-              >
-                <option value="المدينة">كل المدن</option>
-                <option value="الرياض">الرياض</option>
-                <option value="جدة">جدة</option>
-                <option value="القصيم">القصيم</option>
-                <option value="الدمام">الدمام</option>
-              </select>
-              <select 
-                name="category"
-                defaultValue={category || 'النوع'}
-                className="px-4 py-3 bg-[#F4F8FF] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#086BEE] outline-none min-w-[130px] font-medium text-[#082B78]"
-              >
-                <option value="النوع">كل التصنيفات</option>
-                <option value="تقنية">تقنية</option>
-                <option value="أغذية">أغذية</option>
-                <option value="ثقافة">ثقافة</option>
-                <option value="عقارات">عقارات</option>
-              </select>
-              <button 
-                type="submit" 
-                className="px-7 py-3 bg-[#086BEE] text-white rounded-xl flex items-center justify-center gap-2 hover:bg-[#0759c9] transition-all font-bold text-sm shadow-sm shrink-0"
-              >
-                <Filter size={18} />
-                <span>تصفية</span>
-              </button>
-            </div>
-          </form>
+          {/* Search & Filters Form Card */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-[#E2E8F0] shadow-sm hover:shadow-md transition-shadow duration-300 mb-8 max-w-5xl mx-auto">
+            <form method="GET" action="/explore" className="flex flex-col md:flex-row gap-3 sm:gap-4">
+              {/* Search input */}
+              <div className="flex-1 relative">
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-[#71809D]" size={20} />
+                <input 
+                  type="text" 
+                  name="search"
+                  defaultValue={search || ''}
+                  placeholder="ابحث باسم المعرض..." 
+                  className="w-full pl-4 pr-12 py-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl sm:rounded-2xl text-sm focus:outline-none focus:border-[#086BEE] focus:bg-white focus:ring-2 focus:ring-[#086BEE]/15 transition-all text-right font-medium text-[#082B78] placeholder:text-[#94A3B8]"
+                />
+              </div>
 
-          {/* Banner link to AI Assistant */}
-          <div className="mb-12 bg-gradient-to-r from-[#EFF6FF] via-white to-[#F4F8FF] p-6 rounded-2xl border border-[#086BEE]/20 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+              {/* Select filters & Button */}
+              <div className="flex flex-wrap sm:flex-nowrap gap-3">
+                <select 
+                  name="city"
+                  defaultValue={city || 'المدينة'}
+                  className="px-4 py-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl sm:rounded-2xl text-sm focus:outline-none focus:border-[#086BEE] focus:bg-white focus:ring-2 focus:ring-[#086BEE]/15 transition-all min-w-[130px] font-semibold text-[#082B78] cursor-pointer"
+                >
+                  <option value="المدينة">كل المدن</option>
+                  <option value="الرياض">الرياض</option>
+                  <option value="جدة">جدة</option>
+                  <option value="القصيم">القصيم</option>
+                  <option value="الدمام">الدمام</option>
+                </select>
+
+                <select 
+                  name="category"
+                  defaultValue={category || 'النوع'}
+                  className="px-4 py-3.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl sm:rounded-2xl text-sm focus:outline-none focus:border-[#086BEE] focus:bg-white focus:ring-2 focus:ring-[#086BEE]/15 transition-all min-w-[130px] font-semibold text-[#082B78] cursor-pointer"
+                >
+                  <option value="النوع">كل التصنيفات</option>
+                  <option value="تقنية">تقنية</option>
+                  <option value="أغذية">أغذية</option>
+                  <option value="تراث وثقافة">تراث وثقافة</option>
+                  <option value="ثقافة">ثقافة وكتب</option>
+                  <option value="عقارات">عقارات</option>
+                </select>
+
+                <button 
+                  type="submit" 
+                  className="px-8 py-3.5 bg-[#086BEE] hover:bg-[#0759c9] text-white rounded-xl sm:rounded-2xl flex items-center justify-center gap-2 transition-all duration-200 font-bold text-sm shadow-md shadow-[#086BEE]/25 hover:shadow-lg hover:shadow-[#086BEE]/35 active:scale-[0.98] shrink-0"
+                >
+                  <Filter size={18} />
+                  <span>تصفية</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* AI Assistant Banner Card */}
+          <div className="mb-12 max-w-5xl mx-auto bg-gradient-to-r from-[#EDF5FF] via-[#F4F9FF] to-[#EBF3FF] p-5 sm:p-6 rounded-2xl sm:rounded-3xl border border-[#086BEE]/25 flex flex-col md:flex-row items-center justify-between gap-5 shadow-sm hover:shadow-md transition-all duration-300">
             <div className="flex items-center gap-4 text-right">
-              <div className="p-3 bg-[#086BEE] text-white rounded-xl shadow-md shrink-0">
-                <Sparkles size={24} className="text-[#FF6257]" />
+              <div className="w-12 h-12 rounded-2xl bg-[#086BEE] text-white flex items-center justify-center shadow-md shadow-[#086BEE]/25 shrink-0">
+                <Sparkles size={22} className="text-white animate-pulse" />
               </div>
               <div>
-                <h3 className="font-bold text-[#082B78] text-base mb-1">هل تبحث عن البوث الأنسب لنشاطك التجاري؟</h3>
-                <p className="text-[#71809D] text-xs sm:text-sm">اسأل مساعد بوث هب الذكي المدعوم بـ Gemini لتحصل على تحليل واقتراحات فورية.</p>
+                <h3 className="font-bold text-[#082B78] text-base sm:text-lg mb-1">
+                  تحتاج مساعدة في اختيار المعرض المناسب؟
+                </h3>
+                <p className="text-[#71809D] text-xs sm:text-sm font-medium leading-relaxed">
+                  يساعدك مساعد بوث هب الذكي في اكتشاف المعارض والمساحات التي تناسب نشاطك التجاري.
+                </p>
               </div>
             </div>
-            <Link href="/ai-assistant" className="px-6 py-3 bg-white text-[#082B78] border border-[#086BEE]/40 rounded-xl text-sm font-bold hover:bg-[#086BEE] hover:text-white transition-all shrink-0 shadow-sm">
-              المساعد الذكي
+
+            <Link 
+              href="/ai-assistant" 
+              className="px-6 py-3 bg-[#086BEE] hover:bg-[#0759c9] text-white rounded-xl sm:rounded-2xl text-sm font-bold shadow-md shadow-[#086BEE]/20 hover:shadow-lg hover:shadow-[#086BEE]/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 flex items-center gap-2.5 shrink-0 group"
+            >
+              <Sparkles size={16} className="text-[#FF6257] group-hover:rotate-12 transition-transform" />
+              <span>تحدث مع المساعد</span>
             </Link>
           </div>
 
-          {/* Results Grid */}
+          {/* Results Grid - 3 cards in one row on large screens */}
           {exhibitions.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-3xl border border-[#E2E8F0] shadow-sm max-w-lg mx-auto">
               <Store size={48} className="mx-auto text-[#71809D] mb-4 opacity-50" />
@@ -133,7 +157,7 @@ export default async function Explore({
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-7 items-stretch">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8 items-stretch">
               {exhibitions.map((ex, index) => {
                 const imageSrc = getExhibitionImage(ex, index);
                 const available = ex.available_booths ?? 0;
@@ -142,20 +166,20 @@ export default async function Explore({
                 return (
                   <div 
                     key={ex.id} 
-                    className="bg-white border border-[#E2E8F0] rounded-[1.75rem] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-1.5 transition-all duration-300 group flex flex-col h-full text-right"
+                    className="bg-white border border-[#E2E8F0] rounded-3xl overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-[#086BEE]/10 hover:-translate-y-2 transition-all duration-300 group flex flex-col h-full text-right"
                   >
-                    {/* Top Image Section (240px height) */}
-                    <div className="relative h-[240px] w-full overflow-hidden bg-slate-100">
+                    {/* Top Image Section (250px height) */}
+                    <div className="relative h-[250px] w-full overflow-hidden bg-slate-100">
                       <Image
                         src={imageSrc}
                         alt={ex.title}
                         fill
-                        className="object-cover object-center transform group-hover:scale-[1.03] transition-transform duration-700 ease-out"
+                        className="object-cover object-center transform group-hover:scale-105 transition-transform duration-700 ease-out"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
 
                       {/* Gradient shade overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent pointer-events-none"></div>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent pointer-events-none"></div>
 
                       {/* Top Right Badge (RTL): Category */}
                       <div className="absolute top-4 right-4 z-10">
@@ -184,7 +208,7 @@ export default async function Explore({
                     <div className="p-6 sm:p-7 flex flex-col flex-grow">
                       
                       {/* Exhibition Title */}
-                      <h3 className="text-xl sm:text-[22px] font-bold text-[#082B78] mb-5 tracking-tight line-clamp-1">
+                      <h3 className="text-xl sm:text-[22px] font-bold text-[#082B78] mb-5 tracking-tight group-hover:text-[#086BEE] transition-colors line-clamp-1">
                         {ex.title}
                       </h3>
 
@@ -215,7 +239,7 @@ export default async function Explore({
                       {/* Action Button: Explore Floorplan & Details */}
                       <Link
                         href={`/explore/${ex.id}`}
-                        className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 bg-[#086BEE] text-white font-bold rounded-2xl text-sm sm:text-[15px] hover:bg-[#0759c9] hover:shadow-lg hover:shadow-[#086BEE]/25 active:translate-y-0 hover:-translate-y-0.5 transition-all duration-200 group/btn mt-auto"
+                        className="w-full flex items-center justify-center gap-2.5 py-3.5 px-4 bg-[#086BEE] text-white font-bold rounded-2xl text-sm sm:text-base hover:bg-[#0759c9] hover:shadow-lg hover:shadow-[#086BEE]/30 active:translate-y-0 hover:-translate-y-0.5 transition-all duration-200 group/btn mt-auto"
                       >
                         <span className="w-6 h-6 rounded-full bg-white/15 flex items-center justify-center shrink-0 group-hover/btn:bg-white/25 transition-colors">
                           <ArrowLeft size={14} className="transform group-hover/btn:-translate-x-0.5 transition-transform" />
