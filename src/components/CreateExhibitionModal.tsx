@@ -1,5 +1,6 @@
 "use client"
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Plus, X, Loader2, CheckCircle2, AlertCircle, MapPin, Layers, ArrowLeft, ArrowRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { createExhibition } from '@/app/actions/exhibitions';
@@ -9,10 +10,15 @@ import ImageUploadArea from '@/components/ImageUploadArea';
 
 export default function CreateExhibitionModal() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Wizard Step: 'basic' (Step 1) or 'floorplan' (Step 2)
   const [step, setStep] = useState<'basic' | 'floorplan'>('basic');
@@ -89,11 +95,11 @@ export default function CreateExhibitionModal() {
         <span>إنشاء معرض جديد</span>
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+      {mounted && isOpen && createPortal(
+        <div className={`fixed inset-0 z-[100] bg-black/70 backdrop-blur-xs flex items-center justify-center ${step === 'floorplan' ? 'p-2 sm:p-4 overflow-hidden' : 'p-3 sm:p-5 overflow-y-auto'}`}>
           {step === 'basic' ? (
             /* STEP 1: Basic Exhibition Information */
-            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-[#E2E8F0] relative animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto text-right" dir="rtl">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-[#E2E8F0] relative animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto text-right my-auto" dir="rtl">
               <button 
                 onClick={handleClose}
                 className="absolute top-6 left-6 text-gray-400 hover:text-gray-600 p-1 rounded-lg"
@@ -257,7 +263,7 @@ export default function CreateExhibitionModal() {
             </div>
           ) : (
             /* STEP 2: Interactive Floor Plan Designer (Embedded full modal view) */
-            <div className="bg-white rounded-3xl w-full max-w-7xl h-[94vh] shadow-2xl border border-[#E2E8F0] relative overflow-hidden flex flex-col text-right animate-in fade-in duration-200" dir="rtl">
+            <div className="bg-white rounded-3xl w-full max-w-[96vw] xl:max-w-7xl h-[92vh] max-h-[92vh] shadow-2xl border border-[#E2E8F0] relative overflow-hidden flex flex-col text-right animate-in fade-in duration-200" dir="rtl">
               <FloorplanEditor
                 exhibitionId={createdExhibitionId!}
                 exhibitionTitle={createdExhibitionTitle}
@@ -267,7 +273,8 @@ export default function CreateExhibitionModal() {
               />
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

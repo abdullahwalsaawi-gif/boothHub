@@ -17,6 +17,72 @@ interface FloorplanEditorProps {
   onCancel?: () => void
 }
 
+// Module-level default values for auto-layout generation
+const DEFAULT_BOOTH_WIDTH = 3;
+const DEFAULT_BOOTH_HEIGHT = 3;
+const DEFAULT_PRICE_PER_SQM = 500;
+const DEFAULT_UNIFORM_PRICE = 4500;
+const DEFAULT_PRICING_MODE: 'per_sqm' | 'uniform' | 'custom' = 'per_sqm';
+
+interface GenerateBoothsOptions {
+  boothWidth?: number;
+  boothHeight?: number;
+  pricingMode?: 'per_sqm' | 'uniform' | 'custom';
+  uniformPrice?: number;
+  pricePerSqm?: number;
+}
+
+// Pure auto-layout generator independent of React component scope (No TDZ, no uninitialized state access)
+function generateDefaultBooths(
+  count: number,
+  hWidth: number,
+  hHeight: number,
+  options?: GenerateBoothsOptions
+): BoothInput[] {
+  const list: BoothInput[] = [];
+  const bW = options?.boothWidth ?? DEFAULT_BOOTH_WIDTH;
+  const bH = options?.boothHeight ?? DEFAULT_BOOTH_HEIGHT;
+  const pMode = options?.pricingMode ?? DEFAULT_PRICING_MODE;
+  const uPrice = options?.uniformPrice ?? DEFAULT_UNIFORM_PRICE;
+  const sqmPrice = options?.pricePerSqm ?? DEFAULT_PRICE_PER_SQM;
+
+  const area = bW * bH;
+  const price = pMode === 'uniform' ? uPrice : area * sqmPrice;
+
+  // Available space with 2m margins and 2m aisles
+  const margin = 2;
+  const gap = 2;
+  let currX = margin;
+  let currY = margin;
+
+  for (let i = 1; i <= count; i++) {
+    if (currX + bW > hWidth - margin) {
+      currX = margin;
+      currY += bH + gap;
+    }
+    if (currY + bH > hHeight - margin) {
+      // Hall full, wrap or stop
+      currY = margin;
+    }
+
+    list.push({
+      booth_number: `B-${i < 10 ? '0' + i : i}`,
+      name: `بوث رقم ${i}`,
+      width_m: bW,
+      height_m: bH,
+      size_sqm: area,
+      price: price,
+      x: Math.round(currX * 10) / 10,
+      y: Math.round(currY * 10) / 10,
+      rotation: 0,
+      operational_status: 'operational'
+    });
+
+    currX += bW + gap;
+  }
+  return list;
+}
+
 export default function FloorplanEditor({
   exhibitionId,
   exhibitionTitle,
@@ -28,28 +94,34 @@ export default function FloorplanEditor({
 }: FloorplanEditorProps) {
   // 1. Hall Dimensions State
   const [hall, setHall] = useState<HallDimensions>(initialHall);
-  
-  // 2. Booths State
+
+  // 2. Default booth dimensions and pricing configuration states (Initialized first)
+  const [defaultBoothWidth, setDefaultBoothWidth] = useState<number>(DEFAULT_BOOTH_WIDTH);
+  const [defaultBoothHeight, setDefaultBoothHeight] = useState<number>(DEFAULT_BOOTH_HEIGHT);
+  const [defaultPricePerSqm, setDefaultPricePerSqm] = useState<number>(DEFAULT_PRICE_PER_SQM);
+  const [pricingMode, setPricingMode] = useState<'per_sqm' | 'uniform' | 'custom'>(DEFAULT_PRICING_MODE);
+  const [uniformPrice, setUniformPrice] = useState<number>(DEFAULT_UNIFORM_PRICE);
+
+  // 3. Booths State initialized safely with explicit values
   const [booths, setBooths] = useState<BoothInput[]>(() => {
-    if (initialBooths.length > 0) return initialBooths;
+    if (initialBooths && initialBooths.length > 0) return initialBooths;
     // Default initial 10 booths with grid layout
-    return generateDefaultBooths(10, initialHall.width_m, initialHall.height_m);
+    return generateDefaultBooths(10, initialHall.width_m, initialHall.height_m, {
+      boothWidth: DEFAULT_BOOTH_WIDTH,
+      boothHeight: DEFAULT_BOOTH_HEIGHT,
+      pricingMode: DEFAULT_PRICING_MODE,
+      uniformPrice: DEFAULT_UNIFORM_PRICE,
+      pricePerSqm: DEFAULT_PRICE_PER_SQM
+    });
   });
 
   // Selected booth for sidebar
   const [selectedBoothIndex, setSelectedBoothIndex] = useState<number | null>(0);
 
-  // 3. Number of booths mass-generator state
+  // 4. Target count for mass-generator
   const [targetCount, setTargetCount] = useState<number>(booths.length || 10);
-  const [defaultBoothWidth, setDefaultBoothWidth] = useState<number>(3);
-  const [defaultBoothHeight, setDefaultBoothHeight] = useState<number>(3);
-  const [defaultPricePerSqm, setDefaultPricePerSqm] = useState<number>(500);
 
-  // Pricing mode state: uniform | per_sqm | custom
-  const [pricingMode, setPricingMode] = useState<'per_sqm' | 'uniform' | 'custom'>('per_sqm');
-  const [uniformPrice, setUniformPrice] = useState<number>(4500);
-
-  // 4. Canvas Viewport States
+  // 5. Canvas Viewport States
   const [zoom, setZoom] = useState<number>(1);
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [snapToGrid, setSnapToGrid] = useState<boolean>(true);
@@ -101,55 +173,19 @@ export default function FloorplanEditor({
     setRedoStack(prev => prev.slice(0, -1));
   };
 
-  // Helper generator for auto-layout
-  function generateDefaultBooths(count: number, hWidth: number, hHeight: number): BoothInput[] {
-    const list: BoothInput[] = [];
-    const bW = defaultBoothWidth;
-    const bH = defaultBoothHeight;
-    const area = bW * bH;
-    const price = pricingMode === 'uniform' ? uniformPrice : area * defaultPricePerSqm;
-
-    // Available space with 2m margins and 2m aisles
-    const margin = 2;
-    const gap = 2;
-    let currX = margin;
-    let currY = margin;
-
-    for (let i = 1; i <= count; i++) {
-      if (currX + bW > hWidth - margin) {
-        currX = margin;
-        currY += bH + gap;
-      }
-      if (currY + bH > hHeight - margin) {
-        // Hall full, wrap or stop
-        currY = margin;
-      }
-
-      list.push({
-        booth_number: `B-${i < 10 ? '0' + i : i}`,
-        name: `بوث رقم ${i}`,
-        width_m: bW,
-        height_m: bH,
-        size_sqm: area,
-        price: price,
-        x: Math.round(currX * 10) / 10,
-        y: Math.round(currY * 10) / 10,
-        rotation: 0,
-        operational_status: 'operational'
-      });
-
-      currX += bW + gap;
-    }
-    return list;
-  }
-
   // Handle Mass Generate or Adjust Count
   const handleApplyCount = () => {
     if (targetCount <= 0) return;
     pushHistory();
     // Preserve any booths with active bookings!
     const preserved = booths.filter(b => b.id && bookedSet.has(b.id));
-    const generated = generateDefaultBooths(targetCount, hall.width_m, hall.height_m);
+    const generated = generateDefaultBooths(targetCount, hall.width_m, hall.height_m, {
+      boothWidth: defaultBoothWidth,
+      boothHeight: defaultBoothHeight,
+      pricingMode: pricingMode,
+      uniformPrice: uniformPrice,
+      pricePerSqm: defaultPricePerSqm
+    });
     
     // Merge: keep booked ones if present
     const combined = [...preserved];
@@ -408,32 +444,32 @@ export default function FloorplanEditor({
   };
 
   return (
-    <div className="bg-[#F8FAFC] min-h-screen flex flex-col font-sans text-right select-none" dir="rtl">
+    <div className="bg-[#F8FAFC] h-full min-h-0 flex-1 flex flex-col font-sans text-right select-none overflow-hidden" dir="rtl">
       {/* Top Header Bar */}
-      <header className="bg-white border-b border-[#E2E8F0] px-6 py-4 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#0868E9] text-white flex items-center justify-center font-bold">
-            <Layers size={20} />
+      <header className="bg-white border-b border-[#E2E8F0] px-4 sm:px-6 py-3 flex items-center justify-between gap-3 shrink-0 z-20 shadow-xs">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-[#0868E9] text-white flex items-center justify-center font-bold shrink-0">
+            <Layers size={18} />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-lg font-bold text-[#102E70]">محرر مخطط المعرض والبوثات</h1>
-              <span className="text-xs bg-[#EDF5FF] text-[#0868E9] px-2.5 py-0.5 rounded-full font-semibold">
+              <h1 className="text-base sm:text-lg font-bold text-[#102E70] truncate">محرر مخطط المعرض والبوثات</h1>
+              <span className="text-xs bg-[#EDF5FF] text-[#0868E9] px-2.5 py-0.5 rounded-full font-semibold truncate max-w-[160px]">
                 {exhibitionTitle}
               </span>
             </div>
-            <p className="text-xs text-[#65789A]">
+            <p className="text-[11px] text-[#65789A] hidden sm:block truncate">
               تحكم كامل في أبعاد القاعة وتوزيع البوثات ومساحاتها وأسعارها بدقة هندسية بالمتر.
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 shrink-0">
           {onCancel && (
             <button
               onClick={onCancel}
-              className="px-4 py-2 border border-[#E2E8F0] hover:bg-gray-50 text-[#65789A] rounded-xl text-xs font-semibold transition-colors"
+              className="px-3.5 py-2 border border-[#E2E8F0] hover:bg-gray-50 text-[#65789A] rounded-xl text-xs font-semibold transition-colors"
             >
               إلغاء
             </button>
@@ -442,12 +478,12 @@ export default function FloorplanEditor({
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#0868E9] hover:bg-[#0868E9]/90 text-white rounded-xl text-sm font-bold shadow-md shadow-[#0868E9]/20 transition-all disabled:opacity-50"
+            className="flex items-center gap-2 px-4 sm:px-5 py-2 bg-[#0868E9] hover:bg-[#0868E9]/90 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-[#0868E9]/20 transition-all disabled:opacity-50 cursor-pointer"
           >
             {saving ? (
-              <RefreshCw size={16} className="animate-spin" />
+              <RefreshCw size={15} className="animate-spin" />
             ) : (
-              <Save size={16} />
+              <Save size={15} />
             )}
             <span>{saving ? 'جاري الحفظ...' : 'حفظ ونشر المخطط'}</span>
           </button>
@@ -456,9 +492,9 @@ export default function FloorplanEditor({
 
       {/* Feedback Messages */}
       {errorMsg && (
-        <div className="mx-6 mt-4 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center justify-between gap-2 shadow-sm">
+        <div className="mx-6 mt-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs shrink-0">
           <div className="flex items-center gap-2">
-            <AlertCircle size={18} className="shrink-0 text-red-500" />
+            <AlertCircle size={16} className="shrink-0 text-red-500" />
             <span className="font-medium">{errorMsg}</span>
           </div>
           <button onClick={() => setErrorMsg(null)} className="text-red-400 hover:text-red-600">×</button>
@@ -466,9 +502,9 @@ export default function FloorplanEditor({
       )}
 
       {successMsg && (
-        <div className="mx-6 mt-4 p-3.5 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs flex items-center justify-between gap-2 shadow-sm">
+        <div className="mx-6 mt-3 p-3 bg-green-50 border border-green-200 text-green-700 rounded-xl text-xs flex items-center justify-between gap-2 shadow-xs shrink-0">
           <div className="flex items-center gap-2">
-            <CheckCircle2 size={18} className="shrink-0 text-green-500" />
+            <CheckCircle2 size={16} className="shrink-0 text-green-500" />
             <span className="font-medium">{successMsg}</span>
           </div>
           <button onClick={() => setSuccessMsg(null)} className="text-green-400 hover:text-green-600">×</button>
@@ -476,13 +512,13 @@ export default function FloorplanEditor({
       )}
 
       {/* Main Workspace Layout */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden p-6 gap-6">
+      <div className="flex-1 min-h-0 min-w-0 flex flex-col lg:flex-row overflow-hidden p-3 sm:p-4 lg:p-5 gap-4 lg:gap-5">
         
         {/* Left/Main Column: Canvas + Top Toolbar */}
-        <div className="flex-1 flex flex-col bg-white border border-[#E2E8F0] rounded-2xl shadow-sm overflow-hidden">
+        <div className="flex-1 min-h-0 min-w-0 flex flex-col bg-white border border-[#E2E8F0] rounded-2xl shadow-xs overflow-hidden">
           
           {/* Editor Canvas Toolbar */}
-          <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="bg-[#F8FAFC] border-b border-[#E2E8F0] px-3 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs shrink-0">
             {/* Quick Actions */}
             <div className="flex items-center gap-2">
               <button
@@ -569,7 +605,7 @@ export default function FloorplanEditor({
 
           {/* Canvas Floor Area */}
           <div 
-            className="flex-1 overflow-auto bg-[#F1F5F9] relative flex items-center justify-center p-8 select-none"
+            className="flex-1 min-h-0 min-w-0 overflow-auto bg-[#F1F5F9] relative flex items-center justify-center p-4 sm:p-6 lg:p-8 select-none"
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
           >
@@ -744,7 +780,7 @@ export default function FloorplanEditor({
         </div>
 
         {/* Right Sidebar: Selected Booth Properties & Mass Generator Controls */}
-        <div className="w-full lg:w-84 flex flex-col gap-5 overflow-y-auto shrink-0">
+        <div className="w-full lg:w-80 xl:w-84 flex flex-col gap-4 overflow-y-auto shrink-0 min-h-0 pr-0.5">
           
           {/* Panel 1: Hall Dimensions Settings */}
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 shadow-sm">

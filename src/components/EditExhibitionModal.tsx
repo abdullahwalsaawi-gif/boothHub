@@ -1,5 +1,6 @@
 "use client"
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Loader2, AlertCircle, CheckCircle2, MapPin, Edit3 } from 'lucide-react';
 import { Exhibition, updateExhibition } from '@/app/actions/exhibitions';
 import { SAUDI_REGIONS } from '@/lib/saudi-regions';
@@ -18,9 +19,14 @@ export default function EditExhibitionModal({
   onClose,
   onSuccess
 }: EditExhibitionModalProps) {
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Region and City States
   const [selectedRegionId, setSelectedRegionId] = useState<string>('qassim');
@@ -53,15 +59,13 @@ export default function EditExhibitionModal({
     }
   };
 
-  if (!isOpen || !exhibition) return null;
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
-    formData.set('id', exhibition.id);
+    formData.set('id', exhibition?.id || '');
     formData.set('city', selectedCity);
 
     try {
@@ -82,10 +86,12 @@ export default function EditExhibitionModal({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+  if (!isOpen || !exhibition || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
       <div 
-        className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto text-right"
+        className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl border border-slate-200 relative animate-in fade-in zoom-in-95 duration-200 max-h-[92vh] overflow-y-auto text-right my-auto"
         dir="rtl"
       >
         <button 
@@ -272,6 +278,7 @@ export default function EditExhibitionModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
