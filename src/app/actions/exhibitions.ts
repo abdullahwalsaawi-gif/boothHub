@@ -120,12 +120,17 @@ export async function getExhibitions(filters?: {
       })
     }
 
-    return data.map((item: any) => ({
-      ...item,
-      organization_name: item.organizations?.name,
-      total_booths: item.booths?.length || 0,
-      available_booths: item.booths?.filter((b: any) => b.operational_status === 'operational').length || 0
-    }))
+    return data.map((item: any) => {
+      const isKleija = item.id === 'e0e920b6-b195-4e6d-ad6d-16dbf4d9af43' || item.title?.includes('كليجا')
+      return {
+        ...item,
+        city: isKleija ? 'القصيم' : item.city,
+        venue: isKleija ? 'بريدة' : item.venue,
+        organization_name: item.organizations?.name,
+        total_booths: item.booths?.length || 0,
+        available_booths: item.booths?.filter((b: any) => b.operational_status === 'operational').length || 0
+      }
+    })
   } catch (err) {
     console.error('Error fetching exhibitions:', err)
     return FALLBACK_EXHIBITIONS
@@ -150,8 +155,12 @@ export async function getExhibitionById(id: string): Promise<Exhibition | null> 
       return found || FALLBACK_EXHIBITIONS[0] // Return fallback if matched
     }
 
+    const isKleija = data.id === 'e0e920b6-b195-4e6d-ad6d-16dbf4d9af43' || data.title?.includes('كليجا')
+
     return {
       ...data,
+      city: isKleija ? 'القصيم' : data.city,
+      venue: isKleija ? 'بريدة' : data.venue,
       organization_name: data.organizations?.name
     }
   } catch (err) {

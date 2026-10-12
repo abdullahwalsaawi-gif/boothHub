@@ -2,6 +2,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
+import FeaturedExhibitions from "@/components/FeaturedExhibitions";
 import { ArrowLeft, Calendar, MapPin, Store, LayoutDashboard, MousePointerClick, BarChart3, Sparkles } from "lucide-react";
 import { getExhibitions } from "@/app/actions/exhibitions";
 
@@ -20,66 +21,8 @@ export default async function Home() {
         <HeroSection />
 
 
-        {/* Available Exhibitions */}
-        <section className="py-20 bg-white">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl font-bold text-primary-dark mb-4">اكتشف المعارض المتاحة</h2>
-              <p className="text-foreground">تصفح المعارض الحالية واختر المساحة التي تناسب نشاطك التجاري.</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredExhibitions.map((ex) => (
-                <div key={ex.id} className="bg-white border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all group flex flex-col">
-                  <div className="h-44 bg-gradient-to-tr from-primary-dark to-primary relative p-4 flex flex-col justify-between">
-                    <div className="flex justify-between items-start">
-                      <span className="bg-white/20 text-white backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-medium">
-                        {ex.category}
-                      </span>
-                      {ex.available_booths === 0 ? (
-                        <span className="bg-coral text-white px-2.5 py-1 rounded-md text-xs font-medium">مكتمل</span>
-                      ) : (
-                        <span className="bg-green-600 text-white px-2.5 py-1 rounded-md text-xs font-medium">
-                          {ex.available_booths ? `${ex.available_booths} بوث متاح` : 'متاح للحجز'}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-white text-xs opacity-90">
-                      {ex.organization_name || 'جهة معتمدة'}
-                    </div>
-                  </div>
-                  <div className="p-6 flex flex-col flex-grow">
-                    <h3 className="font-bold text-xl text-primary-dark mb-2 line-clamp-1">{ex.title}</h3>
-                    <div className="flex flex-col gap-2 mb-6 mt-auto">
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <MapPin size={16} className="text-primary shrink-0" />
-                        <span className="truncate">{ex.city} - {ex.venue}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <Calendar size={16} className="text-primary shrink-0" />
-                        <span className="truncate">{ex.start_date} إلى {ex.end_date}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <Store size={16} className="text-primary shrink-0" />
-                        <span>{ex.available_booths ?? 10} بوث متاح</span>
-                      </div>
-                    </div>
-                    <Link href={`/explore/${ex.id}`} className="w-full block text-center px-4 py-2.5 bg-secondary-bg text-primary font-medium rounded-xl group-hover:bg-primary group-hover:text-white transition-colors text-sm">
-                      استعراض المخطط والتفاصيل
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-12 text-center">
-              <Link href="/explore" className="inline-flex items-center gap-2 text-primary font-medium hover:underline">
-                <span>عرض جميع المعارض المتاحة</span>
-                <ArrowLeft size={16} />
-              </Link>
-            </div>
-          </div>
-        </section>
+        {/* Featured Exhibitions Section */}
+        <FeaturedExhibitions exhibitions={exhibitions} />
 
         {/* How it works */}
         <section className="py-20 bg-secondary-bg">
