@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import HeroSection from "@/components/HeroSection";
 import { ArrowLeft, Calendar, MapPin, Store, LayoutDashboard, MousePointerClick, BarChart3, Sparkles } from "lucide-react";
 import { getExhibitions } from "@/app/actions/exhibitions";
 
@@ -15,67 +16,9 @@ export default async function Home() {
       <Navbar />
       
       <main className="flex-grow">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-white to-light-blue-bg pt-20 pb-28">
-          <div className="absolute inset-0 z-0 opacity-30">
-            <div className="absolute top-20 right-10 w-64 h-64 border-[40px] border-primary/10 rounded-full animate-spin-slow"></div>
-            <div className="absolute -bottom-20 -left-20 w-96 h-96 border-[60px] border-coral/10 rounded-full"></div>
-          </div>
-          
-          <div className="container mx-auto px-4 md:px-6 relative z-10 flex flex-col lg:flex-row items-center gap-12">
-            <div className="flex-1 text-center lg:text-right">
-              <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-1.5 rounded-full text-xs font-semibold mb-6">
-                <Sparkles size={14} className="text-coral" />
-                <span>المنصة الذكية الأولى لإدارة وحجز بوثات المعارض في المملكة</span>
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-primary-dark leading-tight mb-6">
-                مساحتك في المعرض القادم <span className="text-primary">تبدأ من هنا</span>
-              </h1>
-              <p className="text-lg text-foreground mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                اكتشف المعارض القادمة، استعرض البوثات المتاحة عبر مخططات تفاعلية ذكية، واحجز مساحتك مباشرة مع توصيات فورية مدعومة بنماذج Gemini.
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
-                <Link href="/explore" className="w-full sm:w-auto px-8 py-3.5 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-all shadow-lg shadow-primary/30 flex items-center justify-center gap-2">
-                  <span>استكشف المعارض</span>
-                  <ArrowLeft size={20} />
-                </Link>
-                <Link href="/ai-assistant" className="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-dark border border-border rounded-xl font-medium hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2">
-                  <Sparkles size={18} className="text-coral" />
-                  <span>المساعد الذكي</span>
-                </Link>
-              </div>
-            </div>
-            
-            <div className="flex-1 w-full max-w-lg lg:max-w-none relative">
-              <div className="bg-white p-5 rounded-3xl shadow-2xl border border-border/50 relative z-10 transform rotate-1 hover:rotate-0 transition-transform duration-500">
-                <div className="flex items-center justify-between mb-4 border-b pb-4">
-                  <div className="font-bold text-primary-dark text-sm">مخطط القاعة التفاعلي الحي</div>
-                  <div className="flex gap-2">
-                    <div className="w-3 h-3 rounded-full bg-red-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-amber-400"></div>
-                    <div className="w-3 h-3 rounded-full bg-green-400"></div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  {[...Array(16)].map((_, i) => (
-                    <div key={i} className={`h-16 rounded-xl flex flex-col items-center justify-center text-xs font-bold transition-all
-                      ${i === 5 || i === 10 ? 'bg-primary text-white shadow-md' : 
-                        i === 2 || i === 7 ? 'bg-red-100 text-coral border border-coral/30' : 
-                        i === 12 || i === 15 ? 'bg-gray-200 text-gray-400' : 'bg-green-50 border border-green-300 text-green-700 hover:scale-105'}`}>
-                      <span>A{i + 1}</span>
-                      <span className="text-[10px] font-normal opacity-75">9م²</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex items-center gap-4 text-xs font-medium text-foreground justify-center pt-2 border-t border-border/40">
-                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-green-100 border border-green-400 rounded-sm"></span> متاح للحجز</div>
-                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-red-100 border border-coral rounded-sm"></span> محجوز</div>
-                  <div className="flex items-center gap-1.5"><span className="w-3 h-3 bg-primary rounded-sm"></span> محدد حالياً</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* Hero Section & Feature Cards */}
+        <HeroSection />
+
 
         {/* Available Exhibitions */}
         <section className="py-20 bg-white">

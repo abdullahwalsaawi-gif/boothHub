@@ -1,6 +1,6 @@
 "use client"
 import Link from 'next/link';
-import { Menu, X, Bell, User, LogOut, Settings, Sparkles } from 'lucide-react';
+import { Menu, X, Bell, User, LogOut, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { signOut } from '@/app/actions/auth';
@@ -52,47 +52,76 @@ export default function Navbar() {
     : '/dashboard/exhibitor';
 
   return (
-    <nav className="sticky top-0 z-50 w-full bg-white border-b border-border shadow-sm">
-      <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold text-xl">B</div>
-            <span className="font-bold text-xl text-primary-dark">بوث هب</span>
+    <header className="sticky top-0 z-50 w-full bg-white border-b border-[#E2E8F0]/80 shadow-[0_2px_10px_rgba(8,43,120,0.03)]">
+      <div className="container mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
+        
+        {/* Right side (RTL): Booth Hub Official Logo */}
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-3 group">
+            {/* Geometric icon: Blue & Coral brand icon */}
+            <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#086BEE] to-[#082B78] flex items-center justify-center shadow-md shadow-[#086BEE]/20 transition-transform duration-300 group-hover:scale-105">
+              <span className="text-white font-black text-xl tracking-tight">B</span>
+              <span className="absolute -bottom-1 -left-1 w-3.5 h-3.5 rounded-full bg-[#FF6257] border-2 border-white shadow-sm"></span>
+            </div>
+            
+            <div className="flex flex-col text-right">
+              <span className="font-extrabold text-xl text-[#082B78] leading-none tracking-tight">
+                بوث هب
+              </span>
+              <span className="text-[11px] font-semibold text-[#65789A] tracking-wider uppercase mt-0.5">
+                Booth Hub
+              </span>
+            </div>
           </Link>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium">
-            <Link href="/" className="hover:text-primary transition-colors">الرئيسية</Link>
-            <Link href="/explore" className="hover:text-primary transition-colors">استكشف المعارض</Link>
-            <Link href="/ai-assistant" className="hover:text-primary transition-colors flex items-center gap-1.5 text-primary font-semibold">
-              <Sparkles size={16} className="text-coral" />
-              <span>المساعد الذكي</span>
-            </Link>
-            <Link href="/how-it-works" className="hover:text-primary transition-colors">كيف تعمل المنصة</Link>
-            <Link href="/about" className="hover:text-primary transition-colors">من نحن</Link>
-          </div>
         </div>
 
-        <div className="hidden md:flex items-center gap-4">
+        {/* Center: Navigation Links */}
+        <nav className="hidden lg:flex items-center gap-8 text-[15px] font-medium">
+          <Link href="/" className="relative text-[#082B78] font-bold py-2 transition-colors">
+            الرئيسية
+            <span className="absolute bottom-0 right-0 left-0 h-[2.5px] bg-[#FF6257] rounded-full"></span>
+          </Link>
+          <Link href="/explore" className="text-[#65789A] hover:text-[#086BEE] py-2 transition-colors">
+            استكشاف المعارض
+          </Link>
+          <Link href="/how-it-works" className="text-[#65789A] hover:text-[#086BEE] py-2 transition-colors">
+            كيف تعمل المنصة؟
+          </Link>
+          <Link href="/about" className="text-[#65789A] hover:text-[#086BEE] py-2 transition-colors">
+            من نحن
+          </Link>
+        </nav>
+
+        {/* Left side (RTL): Auth / Profile & Notifications */}
+        <div className="hidden md:flex items-center gap-3.5">
           {!loading && user ? (
             <>
-              <button className="p-2 text-foreground hover:bg-secondary-bg rounded-full transition-colors relative" title="الإشعارات">
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-coral rounded-full"></span>
+              <button 
+                className="w-10 h-10 flex items-center justify-center text-[#65789A] hover:text-[#086BEE] hover:bg-[#F4F8FF] rounded-xl border border-[#E2E8F0] transition-colors relative" 
+                title="الإشعارات"
+              >
+                <Bell size={18} />
+                <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#FF6257] rounded-full ring-2 ring-white"></span>
               </button>
+              
               <div className="relative group">
-                <button className="flex items-center gap-2 p-1 pl-3 bg-secondary-bg rounded-full border border-border">
-                  <div className="w-8 h-8 rounded-full bg-primary-dark flex items-center justify-center text-white font-bold text-xs">
-                    {profile?.full_name ? profile.full_name.charAt(0) : <User size={16} />}
+                <button className="flex items-center gap-2.5 px-3 py-1.5 bg-[#F4F8FF] hover:bg-[#EAF2FF] rounded-xl border border-[#E2E8F0] transition-colors">
+                  <div className="w-8 h-8 rounded-lg bg-[#082B78] text-white flex items-center justify-center font-bold text-xs">
+                    {profile?.full_name ? profile.full_name.charAt(0) : <User size={15} />}
                   </div>
-                  <span className="text-sm font-medium">{profile?.full_name || 'حسابي'}</span>
+                  <span className="text-sm font-semibold text-[#082B78]">
+                    {profile?.full_name || 'حسابي'}
+                  </span>
                 </button>
-                <div className="absolute left-0 mt-2 w-48 bg-white border border-border rounded-xl shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
+                
+                <div className="absolute left-0 mt-2 w-48 bg-white border border-[#E2E8F0] rounded-2xl shadow-xl shadow-[#082B78]/5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="p-2 flex flex-col gap-1">
-                    <Link href={dashboardUrl} className="flex items-center gap-2 p-2 hover:bg-secondary-bg rounded-lg text-sm">
+                    <Link href={dashboardUrl} className="flex items-center gap-2.5 px-3 py-2 text-[#082B78] hover:bg-[#F4F8FF] rounded-xl text-sm font-medium transition-colors">
                       <Settings size={16} />
                       <span>لوحة التحكم</span>
                     </Link>
                     <form action={signOut}>
-                      <button type="submit" className="flex items-center gap-2 p-2 hover:bg-red-50 text-red-600 rounded-lg text-sm w-full text-right">
+                      <button type="submit" className="flex items-center gap-2.5 px-3 py-2 text-[#FF6257] hover:bg-red-50 rounded-xl text-sm font-medium w-full text-right transition-colors">
                         <LogOut size={16} />
                         <span>تسجيل الخروج</span>
                       </button>
@@ -103,48 +132,75 @@ export default function Navbar() {
             </>
           ) : !loading ? (
             <>
-              <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors">
+              {/* Notification icon */}
+              <button 
+                className="w-10 h-10 flex items-center justify-center text-[#65789A] hover:text-[#086BEE] hover:bg-[#F4F8FF] rounded-xl border border-[#E2E8F0] transition-colors" 
+                title="الإشعارات"
+              >
+                <Bell size={18} />
+              </button>
+
+              {/* Login button: White with blue border */}
+              <Link 
+                href="/login" 
+                className="px-5 py-2.5 bg-white text-[#082B78] border border-[#086BEE] rounded-xl text-sm font-semibold hover:bg-[#F4F8FF] hover:border-[#082B78] transition-all duration-200 shadow-sm"
+              >
                 تسجيل الدخول
               </Link>
-              <Link href="/register" className="text-sm font-medium bg-primary text-white px-5 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+
+              {/* Register button: Coral with white text */}
+              <Link 
+                href="/register" 
+                className="px-5 py-2.5 bg-[#FF6257] text-white rounded-xl text-sm font-semibold hover:bg-[#FF6257]/90 transition-all duration-200 shadow-sm shadow-[#FF6257]/20"
+              >
                 إنشاء حساب
               </Link>
             </>
           ) : null}
         </div>
 
-        <button className="md:hidden p-2 text-foreground" onClick={() => setIsMenuOpen(!isMenuOpen)}>
+        {/* Mobile menu hamburger */}
+        <button 
+          className="lg:hidden p-2 text-[#082B78] hover:bg-[#F4F8FF] rounded-xl transition-colors" 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
           {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Drawer */}
       {isMenuOpen && (
-        <div className="md:hidden border-t border-border bg-white p-4 flex flex-col gap-4">
-          <Link href="/" className="p-2 hover:bg-secondary-bg rounded-lg">الرئيسية</Link>
-          <Link href="/explore" className="p-2 hover:bg-secondary-bg rounded-lg">استكشف المعارض</Link>
-          <Link href="/ai-assistant" className="p-2 hover:bg-secondary-bg rounded-lg flex items-center gap-2 text-primary font-medium">
-            <Sparkles size={16} className="text-coral" />
-            <span>المساعد الذكي (Gemini)</span>
-          </Link>
-          <Link href="/how-it-works" className="p-2 hover:bg-secondary-bg rounded-lg">كيف تعمل المنصة</Link>
-          <Link href="/about" className="p-2 hover:bg-secondary-bg rounded-lg">من نحن</Link>
-          <div className="h-px w-full bg-border my-2"></div>
+        <div className="lg:hidden border-t border-[#E2E8F0] bg-white px-5 py-6 flex flex-col gap-3 shadow-lg">
+          <Link href="/" className="px-3 py-2 text-[#082B78] font-bold bg-[#F4F8FF] rounded-xl">الرئيسية</Link>
+          <Link href="/explore" className="px-3 py-2 text-[#65789A] hover:text-[#086BEE] rounded-xl">استكشاف المعارض</Link>
+          <Link href="/how-it-works" className="px-3 py-2 text-[#65789A] hover:text-[#086BEE] rounded-xl">كيف تعمل المنصة؟</Link>
+          <Link href="/about" className="px-3 py-2 text-[#65789A] hover:text-[#086BEE] rounded-xl">من نحن</Link>
+          
+          <div className="h-px w-full bg-[#E2E8F0] my-2"></div>
+          
           {user ? (
             <div className="flex flex-col gap-2">
-              <Link href={dashboardUrl} className="p-2 bg-primary/10 text-primary font-medium rounded-lg text-center">لوحة التحكم</Link>
+              <Link href={dashboardUrl} className="py-2.5 px-4 bg-[#F4F8FF] text-[#082B78] font-bold rounded-xl text-center border border-[#E2E8F0]">
+                لوحة التحكم
+              </Link>
               <form action={signOut}>
-                <button type="submit" className="p-2 text-red-600 hover:bg-red-50 rounded-lg text-center w-full">تسجيل الخروج</button>
+                <button type="submit" className="w-full py-2.5 px-4 text-[#FF6257] hover:bg-red-50 rounded-xl font-bold text-center transition-colors">
+                  تسجيل الخروج
+                </button>
               </form>
             </div>
           ) : (
-            <div className="flex flex-col gap-2">
-              <Link href="/login" className="p-2 text-center border border-border rounded-lg font-medium">تسجيل الدخول</Link>
-              <Link href="/register" className="p-2 text-center bg-primary text-white rounded-lg font-medium">إنشاء حساب</Link>
+            <div className="flex flex-col gap-2.5">
+              <Link href="/login" className="py-2.5 text-center bg-white text-[#082B78] border border-[#086BEE] rounded-xl font-semibold">
+                تسجيل الدخول
+              </Link>
+              <Link href="/register" className="py-2.5 text-center bg-[#FF6257] text-white rounded-xl font-semibold shadow-sm">
+                إنشاء حساب
+              </Link>
             </div>
           )}
         </div>
       )}
-    </nav>
+    </header>
   );
 }
