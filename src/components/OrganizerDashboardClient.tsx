@@ -263,14 +263,12 @@ export default function OrganizerDashboardClient({
       `}>
         {/* Brand / Logo */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 bg-gradient-to-l from-white via-white to-blue-50/40">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#102E70] to-[#0868E9] flex items-center justify-center text-white font-bold text-xl shadow-md shadow-blue-500/20">
-              B
-            </div>
-            <div>
-              <span className="font-extrabold text-lg text-[#102E70] tracking-tight block">بوث هب</span>
-              <span className="text-[10px] text-slate-400 font-medium -mt-1 block">بوابة المنظم الذكية</span>
-            </div>
+          <Link href="/" className="flex items-center group py-1" aria-label="بوث هب | Booth Hub">
+            <img 
+              src="/branding/logo.png" 
+              alt="بوث هب | Booth Hub" 
+              className="h-9 sm:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+            />
           </Link>
           <button 
             onClick={() => setMobileMenuOpen(false)}
