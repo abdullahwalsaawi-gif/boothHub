@@ -26,7 +26,7 @@ export default async function Home() {
         <FeaturedExhibitions exhibitions={exhibitions} />
 
         {/* How it works */}
-        <section className="py-20 bg-secondary-bg">
+        <section id="how-it-works" className="py-20 bg-secondary-bg">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center max-w-2xl mx-auto mb-16">
               <h2 className="text-3xl font-bold text-primary-dark mb-4">احجز بوثك في خطوات بسيطة</h2>
@@ -71,8 +71,8 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Beneficiaries */}
-        <section className="py-20 bg-white">
+        {/* Beneficiaries / About */}
+        <section id="about" className="py-20 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-gradient-to-br from-light-blue-bg to-white p-10 rounded-3xl border border-border hover:shadow-xl transition-shadow relative overflow-hidden group">
