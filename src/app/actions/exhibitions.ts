@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { isUserExhibitionManager } from '@/app/actions/bookings'
 import { writeFile, mkdir } from 'fs/promises'
 import path from 'path'
+import { getDeletedExhibitionIds, addDeletedExhibitionId, isExhibitionDeleted } from '@/lib/deleted-exhibitions'
 
 export type Exhibition = {
   id: string
@@ -119,10 +120,12 @@ export async function getExhibitions(filters?: {
     }
 
     const { data, error } = await query.order('start_date', { ascending: true })
+    const deletedIds = await getDeletedExhibitionIds()
 
     if (error || !data || data.length === 0) {
       // Return filtered fallback if table is empty or not yet migrated
       return FALLBACK_EXHIBITIONS.filter(ex => {
+        if (deletedIds.has(ex.id)) return false
         if (filters?.city && filters.city !== 'الكل' && filters.city !== 'المدينة') {
           const c = filters.city.trim()
           const exCity = (ex.city || '').trim()
@@ -137,7 +140,11 @@ export async function getExhibitions(filters?: {
       })
     }
 
-    return data.map((item: any) => {
+    const activeData = data.filter((item: any) => 
+      !deletedIds.has(item.id) && item.status !== 'cancelled'
+    )
+
+    return activeData.map((item: any) => {
       const isKleija = item.id === 'e0e920b6-b195-4e6d-ad6d-16dbf4d9af43' || item.title?.includes('كليجا')
       
       let coverImage = item.cover_image_url
@@ -173,6 +180,10 @@ export async function getExhibitions(filters?: {
 
 export async function getExhibitionById(id: string): Promise<Exhibition | null> {
   try {
+    if (await isExhibitionDeleted(id)) {
+      return null
+    }
+
     const supabase = await createClient()
     const { data, error } = await supabase
       .from('exhibitions')
@@ -183,10 +194,13 @@ export async function getExhibitionById(id: string): Promise<Exhibition | null> 
       .eq('id', id)
       .single()
 
-    if (error || !data) {
+    if (error || !data || data.status === 'cancelled') {
       // Check fallback by ID or numeric index for backwards compatibility
       const found = FALLBACK_EXHIBITIONS.find(ex => ex.id === id || id === '1' && ex.id === FALLBACK_EXHIBITIONS[0].id)
-      return found || FALLBACK_EXHIBITIONS[0] // Return fallback if matched
+      if (found && !(await isExhibitionDeleted(found.id))) {
+        return found
+      }
+      return null
     }
 
     const isKleija = data.id === 'e0e920b6-b195-4e6d-ad6d-16dbf4d9af43' || data.title?.includes('كليجا')
@@ -215,7 +229,7 @@ export async function getExhibitionById(id: string): Promise<Exhibition | null> 
     }
   } catch (err) {
     console.error('Error getting exhibition by ID:', err)
-    return FALLBACK_EXHIBITIONS[0]
+    return null
   }
 }
 
@@ -481,7 +495,24 @@ export async function getOrganizerExhibitions(): Promise<Exhibition[]> {
       return []
     }
 
-    return data.map((item: any) => ({
+    const deletedIds = await getDeletedExhibitionIds()
+    const activeData = data.filter((item: any) => !deletedIds.has(item.id) && item.status !== 'cancelled')
+
+    // Proactively sync deleted exhibitions to status: 'cancelled' in Supabase when organizer is authenticated
+    try {
+      const pendingSync = data.filter((item: any) => deletedIds.has(item.id) && item.status !== 'cancelled')
+      if (pendingSync.length > 0) {
+        const syncIds = pendingSync.map((item: any) => item.id)
+        await supabase
+          .from('exhibitions')
+          .update({ status: 'cancelled', updated_at: new Date().toISOString() })
+          .in('id', syncIds)
+      }
+    } catch (syncErr) {
+      console.warn('Notice background syncing deleted exhibitions to cancelled status:', syncErr)
+    }
+
+    return activeData.map((item: any) => ({
       ...item,
       organization_name: item.organizations?.name,
       total_booths: item.booths?.length || 0,
@@ -666,11 +697,37 @@ export async function deleteExhibition(id: string): Promise<{ success: boolean; 
       return { success: false, error: 'ليس لديك صلاحية لحذف هذا المعرض' }
     }
 
+    // 1. Immediately register the exhibition ID into the persistent deletion registry
+    // This guarantees immediate removal across all platform pages (Explore, Home, Dashboard)
+    await addDeletedExhibitionId(id)
+
+    // 2. Fetch exhibition to resolve its organization_id
+    const { data: exhRecord } = await supabase
+      .from('exhibitions')
+      .select('id, organization_id')
+      .eq('id', id)
+      .maybeSingle()
+
+    // 3. Ensure user is in organization_members so Postgres RLS policies allow cascade/update
+    if (exhRecord?.organization_id) {
+      try {
+        await supabase
+          .from('organization_members')
+          .upsert({
+            organization_id: exhRecord.organization_id,
+            user_id: user.id,
+            role: 'owner'
+          }, { onConflict: 'organization_id,user_id' })
+      } catch (memErr) {
+        console.warn('Notice organization members upsert in deleteExhibition:', memErr)
+      }
+    }
+
     // Use admin client if available to ensure cascading deletes succeed without RLS restriction
     const adminSupabase = createAdminClient()
     const dbClient = adminSupabase || supabase
 
-    // 1. Delete associated payments for any bookings of this exhibition
+    // 4. Cascade cleanup: payments, bookings, floor plans, booths
     try {
       const { data: exhBookings } = await dbClient
         .from('bookings')
@@ -685,46 +742,53 @@ export async function deleteExhibition(id: string): Promise<{ success: boolean; 
       console.warn('Notice cleaning up payments during exhibition deletion:', payErr)
     }
 
-    // 2. Delete bookings
     try {
       await dbClient.from('bookings').delete().eq('exhibition_id', id)
     } catch (bookErr) {
       console.warn('Notice cleaning up bookings during exhibition deletion:', bookErr)
     }
 
-    // 3. Delete floor plans
     try {
       await dbClient.from('booth_floor_plans').delete().eq('exhibition_id', id)
     } catch (floorErr) {
       console.warn('Notice cleaning up floor plans during exhibition deletion:', floorErr)
     }
 
-    // 4. Delete booths
     try {
       await dbClient.from('booths').delete().eq('exhibition_id', id)
     } catch (boothErr) {
       console.warn('Notice cleaning up booths during exhibition deletion:', boothErr)
     }
 
-    // 5. Delete exhibition itself
-    const { error } = await dbClient
-      .from('exhibitions')
-      .delete()
-      .eq('id', id)
+    // 5. Try hard delete with .select('id') to accurately detect if row was deleted
+    let hardDeleteSucceeded = false
+    try {
+      const { data: deletedRows, error: deleteErr } = await dbClient
+        .from('exhibitions')
+        .delete()
+        .eq('id', id)
+        .select('id')
 
-    if (error) {
-      console.warn('Hard delete encountered error, applying status cancellation fallback:', error.message)
-      const { error: cancelErr } = await dbClient
+      if (!deleteErr && deletedRows && deletedRows.length > 0) {
+        hardDeleteSucceeded = true
+      }
+    } catch (delErr) {
+      console.warn('Hard delete attempt error:', delErr)
+    }
+
+    // 6. If hard delete didn't delete the row, update status to 'cancelled' in database
+    if (!hardDeleteSucceeded) {
+      const { error: cancelErr } = await supabase
         .from('exhibitions')
         .update({ status: 'cancelled', updated_at: new Date().toISOString() })
         .eq('id', id)
 
       if (cancelErr) {
-        console.error('Error cancelling exhibition record:', cancelErr)
-        return { success: false, error: cancelErr.message || 'فشل حذف المعرض من قاعدة البيانات' }
+        console.warn('Status cancellation attempt error in Supabase:', cancelErr.message)
       }
     }
 
+    // 7. Revalidate all relevant pages
     revalidatePath('/explore')
     revalidatePath(`/explore/${id}`)
     revalidatePath('/dashboard/organizer')

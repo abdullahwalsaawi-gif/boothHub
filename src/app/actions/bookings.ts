@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { isExhibitionDeleted } from '@/lib/deleted-exhibitions'
 
 export type BoothData = {
   id: string
@@ -256,10 +257,10 @@ export async function createBooking(data: {
     .eq('id', targetExhibitionId)
     .maybeSingle()
 
-  if (exRecord && exRecord.status !== 'published') {
+  if ((await isExhibitionDeleted(targetExhibitionId)) || (exRecord && exRecord.status !== 'published')) {
     return {
       success: false,
-      error: 'عذراً! هذا المعرض غير متاح للحجز حالياً (المعرض مخفي أو قيد التجهيز).'
+      error: 'عذراً! هذا المعرض غير متاح للحجز حالياً (المعرض محذوف أو غير متاح).'
     }
   }
 
