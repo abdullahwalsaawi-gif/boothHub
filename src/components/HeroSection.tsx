@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 
 export default function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#F6F9FF] to-[#EEF5FF] pt-8 pb-16 lg:pt-14 lg:pb-24 border-b border-[#E2E8F0]/70">
+    <section className="relative overflow-hidden bg-gradient-to-b from-white via-[#F6F9FF] to-[#EEF5FF] pt-8 pb-16 lg:pt-14 lg:pb-24">
       
       {/* Decorative ambient background accents - clean and uncluttered */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">

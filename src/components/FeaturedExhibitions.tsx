@@ -45,15 +45,34 @@ export default function FeaturedExhibitions({ exhibitions }: FeaturedExhibitions
   };
 
   return (
-    <section className="relative py-20 lg:py-28 overflow-hidden bg-gradient-to-b from-white via-[#F6F9FF] to-white border-b border-[#E2E8F0]/60">
+    <section className="relative py-20 lg:py-28 overflow-hidden bg-gradient-to-b from-[#EEF5FF] via-[#E8F3FF] via-50% to-[#EFF6FF] border-b border-[#E2E8F0]/80">
       
       {/* Decorative ambient geometric accents inspired by Booth Hub official logo */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-16 right-[-6%] w-96 h-96 rounded-full bg-[#086BEE]/4 blur-3xl"></div>
-        <div className="absolute bottom-16 left-[-6%] w-96 h-96 rounded-full bg-[#FF6257]/4 blur-3xl"></div>
-        {/* Subtle geometric crystal / hexagonal accent */}
-        <div className="absolute top-1/4 left-10 w-24 h-24 rounded-3xl border border-[#086BEE]/10 rotate-12 hidden xl:block"></div>
-        <div className="absolute bottom-1/4 right-10 w-28 h-28 rounded-3xl border border-[#FF6257]/10 -rotate-12 hidden xl:block"></div>
+        {/* Soft Radial Gradient Lighting directly behind cards */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[85%] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.95)_0%,rgba(232,243,255,0.6)_55%,rgba(239,246,255,0.2)_100%)]"></div>
+
+        {/* Top-Right Geometric Blue Polygonal Elements (5%-10% opacity) */}
+        <div className="absolute top-[-40px] right-[-40px] w-80 h-80 rounded-[3rem] bg-[#086BEE]/[0.08] rotate-12 blur-sm"></div>
+        <div className="absolute top-12 right-12 w-48 h-48 rounded-[2rem] border-2 border-[#086BEE]/[0.10] rotate-45 hidden md:block"></div>
+        <div className="absolute top-36 right-32 w-28 h-28 rounded-2xl bg-gradient-to-br from-[#086BEE]/[0.09] to-[#082B78]/[0.05] -rotate-12 hidden lg:block"></div>
+
+        {/* Bottom-Left Geometric Coral Polygonal Elements (5%-10% opacity) */}
+        <div className="absolute bottom-[-50px] left-[-50px] w-96 h-96 rounded-[3.5rem] bg-[#FF6257]/[0.07] -rotate-12 blur-sm"></div>
+        <div className="absolute bottom-16 left-16 w-52 h-52 rounded-[2.25rem] border-2 border-[#FF6257]/[0.09] rotate-12 hidden md:block"></div>
+        <div className="absolute bottom-40 left-36 w-32 h-32 rounded-2xl bg-gradient-to-tr from-[#FF6257]/[0.08] to-[#FF8A80]/[0.04] rotate-45 hidden lg:block"></div>
+
+        {/* Subtle geometric lines and circles adding visual depth (5%-10% opacity) */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.07] stroke-[#086BEE]" xmlns="http://www.w3.org/2000/svg" fill="none">
+          <circle cx="20%" cy="30%" r="140" strokeWidth="1.5" strokeDasharray="4 6" />
+          <circle cx="80%" cy="70%" r="180" strokeWidth="1.5" strokeDasharray="6 8" />
+          <line x1="0" y1="25%" x2="100%" y2="40%" strokeWidth="1" strokeDasharray="10 15" />
+          <line x1="0" y1="80%" x2="100%" y2="65%" strokeWidth="1" strokeDasharray="8 12" />
+        </svg>
+
+        {/* Subtle polygonal crystal shapes inspired by Booth Hub 3D isometric emblem */}
+        <div className="absolute top-1/3 left-6 w-16 h-16 border border-[#086BEE]/[0.09] rotate-45 rounded-xl hidden xl:block"></div>
+        <div className="absolute top-2/3 right-8 w-20 h-20 border border-[#FF6257]/[0.09] rotate-12 rounded-2xl hidden xl:block"></div>
       </div>
 
       <div className="container mx-auto px-4 md:px-8 relative z-10">
