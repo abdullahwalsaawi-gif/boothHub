@@ -53,6 +53,16 @@ export default function Register() {
             <span>العودة للرئيسية</span>
           </Link>
 
+          <div className="md:hidden mb-6">
+            <Link href="/" className="inline-block" aria-label="بوث هب | Booth Hub">
+              <img 
+                src="/branding/logo.png" 
+                alt="بوث هب | Booth Hub" 
+                className="h-9 w-auto object-contain"
+              />
+            </Link>
+          </div>
+
           <h1 className="text-2xl font-bold text-[#102E70] mb-2">انضم إلى بوث هب</h1>
           <p className="text-[#65789A] text-sm mb-6">
             أنشئ حسابك الجديد بالبريد الإلكتروني ورقم الجوال للبدء فوراً.
@@ -268,11 +278,19 @@ export default function Register() {
       </div>
 
       {/* Visual Side */}
-      <div className="hidden md:flex flex-1 bg-gradient-to-tl from-[#EDF5FF] to-white relative overflow-hidden items-center justify-center p-12 text-center border-r border-[#E2E8F0]">
-        <div className="relative z-10 w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl border border-[#E2E8F0]">
-          <div className="w-16 h-16 bg-[#0868E9] text-white text-3xl font-bold flex items-center justify-center rounded-2xl mx-auto mb-6 shadow-xl">
-            B
-          </div>
+      <div className="hidden md:flex flex-1 bg-gradient-to-tl from-[#FFFFFF] via-[#F4F8FE] to-[#EAF3FF] relative overflow-hidden items-center justify-center p-12 text-center border-r border-[#E2E8F0]">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-[#0868E9]/15 via-[#0868E9]/8 to-[#FF6D5C]/5 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-16 right-[-8%] w-72 h-72 rounded-full border border-[#0868E9]/15 border-dashed"></div>
+        </div>
+        <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-[#E2E8F0]">
+          <Link href="/" className="inline-block mb-6 group" aria-label="بوث هب | Booth Hub">
+            <img 
+              src="/branding/logo.png" 
+              alt="بوث هب | Booth Hub" 
+              className="h-14 w-auto object-contain mx-auto transition-transform duration-300 group-hover:scale-105 drop-shadow-sm"
+            />
+          </Link>
           <h2 className="text-2xl font-bold text-[#102E70] mb-4">انضم إلى مجتمع بوث هب</h2>
           <p className="text-[#65789A] text-sm leading-relaxed mb-6">
             سواء كنت عارضاً تبحث عن أفضل موقع في المعارض أو منظماً يسعى لأتمتة حجوزات البوثات، بوث هب هي المنصة الأمثل لك.

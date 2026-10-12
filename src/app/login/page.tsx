@@ -41,20 +41,27 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-white">
       {/* Visual Side */}
-      <div className="hidden md:flex flex-1 bg-gradient-to-br from-[#EDF5FF] to-[#0868E9]/10 relative overflow-hidden items-center justify-center p-12 text-center">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 right-20 w-64 h-64 border-[40px] border-[#0868E9] rounded-full"></div>
-          <div className="absolute bottom-20 -left-10 w-40 h-40 border-[20px] border-[#FF6D5C] rounded-full"></div>
+      <div className="hidden md:flex flex-1 bg-gradient-to-br from-[#FFFFFF] via-[#F4F8FE] to-[#EAF3FF] relative overflow-hidden items-center justify-center p-12 text-center border-l border-slate-100">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-gradient-to-tr from-[#0868E9]/15 via-[#0868E9]/8 to-[#FF6D5C]/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-16 right-[-8%] w-72 h-72 rounded-full border border-[#0868E9]/15 border-dashed"></div>
+          <div className="absolute bottom-16 left-[-8%] w-80 h-80 rounded-full border border-[#0868E9]/10"></div>
+          <div className="absolute top-36 right-[12%] w-2.5 h-2.5 rounded-full bg-[#0868E9]/30"></div>
+          <div className="absolute bottom-28 left-[10%] w-3 h-3 rounded-full bg-[#FF6D5C]/30"></div>
         </div>
         <div className="relative z-10 max-w-md">
-          <div className="w-16 h-16 bg-[#0868E9] text-white text-3xl font-bold flex items-center justify-center rounded-2xl mx-auto mb-6 shadow-xl">
-            B
-          </div>
-          <h2 className="text-3xl font-bold text-[#102E70] mb-4">مرحباً بك في بوث هب</h2>
-          <p className="text-[#65789A] text-lg leading-relaxed mb-6">
+          <Link href="/" className="inline-block mb-8 group" aria-label="بوث هب | Booth Hub">
+            <img 
+              src="/branding/logo.png" 
+              alt="بوث هب | Booth Hub" 
+              className="h-16 w-auto object-contain mx-auto transition-transform duration-300 group-hover:scale-105 drop-shadow-sm"
+            />
+          </Link>
+          <h2 className="text-3xl font-extrabold text-[#102E70] mb-4 tracking-tight">مرحباً بك في بوث هب</h2>
+          <p className="text-[#65789A] text-base leading-relaxed mb-6 font-normal">
             سجّل دخولك لمتابعة معارضك وحجوزاتك بكل سهولة وأمان عبر بريدك الإلكتروني.
           </p>
-          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-xl text-xs font-semibold text-[#102E70] border border-[#0868E9]/20 shadow-sm">
+          <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl text-xs font-semibold text-[#102E70] border border-[#0868E9]/15 shadow-sm">
             <ShieldCheck size={16} className="text-[#0868E9]" />
             <span>منصة موثوقة لحجز وإدارة المعارض والبوثات</span>
           </div>
@@ -69,8 +76,14 @@ export default function Login() {
             <span>العودة للرئيسية</span>
           </Link>
 
-          <div className="md:hidden w-12 h-12 bg-[#0868E9] text-white text-2xl font-bold flex items-center justify-center rounded-xl mb-6">
-            B
+          <div className="md:hidden mb-6">
+            <Link href="/" className="inline-block" aria-label="بوث هب | Booth Hub">
+              <img 
+                src="/branding/logo.png" 
+                alt="بوث هب | Booth Hub" 
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
           </div>
 
           <h1 className="text-2xl font-bold text-[#102E70] mb-2">تسجيل الدخول</h1>
