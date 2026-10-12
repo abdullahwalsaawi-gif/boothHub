@@ -114,13 +114,13 @@ export default function HeroSection() {
             {/* Image Card Container */}
             <div className="relative w-full overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl shadow-[#082B78]/10 border border-white/90 bg-white">
               
-              <div className="relative aspect-[4/3] w-full">
+              <div className="relative aspect-[3/2] w-full">
                 <Image 
-                  src="/hero-exhibition.jpg" 
-                  alt="قاعة معارض سعودية حديثة بهوية بوث هب - Booth Hub"
+                  src="/images/boothhub-hero.jpg" 
+                  alt="جناح بوث هب في قاعة معارض سعودية - Booth Hub"
                   fill
                   priority
-                  className="object-cover object-center transform hover:scale-[1.02] transition-transform duration-700 ease-out"
+                  className="object-cover object-center transform hover:scale-[1.015] transition-transform duration-700 ease-out"
                   sizes="(max-width: 1024px) 100vw, 53vw"
                 />
                 
