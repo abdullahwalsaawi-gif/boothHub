@@ -95,15 +95,6 @@ export default async function Explore({
           
           {/* Header Title Section */}
           <div className="mb-10 lg:mb-14 text-center max-w-3xl mx-auto relative">
-            {/* Top decorative element from brand identity */}
-            <div className="inline-flex items-center justify-center gap-2 mb-4 px-4 py-1.5 rounded-full bg-white/90 border border-[#086BEE]/20 shadow-sm backdrop-blur-md">
-              <span className="w-6 h-[3px] bg-[#086BEE] rounded-full"></span>
-              <span className="w-2 h-2 rounded-full bg-[#FF6257]"></span>
-              <span className="text-xs font-bold text-[#082B78] tracking-wide">منصة بوث هب</span>
-              <span className="w-2 h-2 rounded-full bg-[#FF6257]"></span>
-              <span className="w-6 h-[3px] bg-[#086BEE] rounded-full"></span>
-            </div>
-
             {/* Gradient Title */}
             <h1 className="text-3xl md:text-5xl font-extrabold mb-4 tracking-tight">
               <span className="bg-gradient-to-r from-[#082B78] via-[#086BEE] to-[#082B78] bg-clip-text text-transparent drop-shadow-sm">
