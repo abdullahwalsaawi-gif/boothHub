@@ -232,6 +232,10 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     return { success: false, error: 'يرجى ملء جميع الحقول المطلوبة' }
   }
 
+  if (!phone || phone.trim().length < 8) {
+    return { success: false, error: 'يرجى إدخال رقم جوال صحيح (مثال: 05XXXXXXXX)' }
+  }
+
   if (password.length < 6) {
     return { success: false, error: 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل' }
   }
@@ -244,6 +248,7 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     return { success: false, error: 'يرجى إدخال اسم الجهة المنظمة' }
   }
 
+  const formattedPhone = formatSaudiPhoneNumber(phone)
   const supabase = await createClient()
 
   const { data, error } = await supabase.auth.signUp({
@@ -252,7 +257,7 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     options: {
       data: {
         full_name: fullName,
-        phone: phone || '',
+        phone: formattedPhone,
         account_type: accountType,
         organization_name: organizationName || '',
       },
@@ -270,6 +275,20 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     return { success: false, error: error.message || 'حدث خطأ أثناء إنشاء الحساب' }
   }
 
+  if (data?.user) {
+    try {
+      await supabase.from('profiles').upsert({
+        id: data.user.id,
+        full_name: fullName,
+        phone: formattedPhone,
+        email: email,
+        account_type: accountType,
+      })
+    } catch (profErr) {
+      console.error('Error saving profile in signUp:', profErr)
+    }
+  }
+
   if (data?.user && accountType === 'organizer' && organizationName) {
     try {
       const { data: org, error: orgError } = await supabase
@@ -277,7 +296,7 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
         .insert({
           name: organizationName,
           contact_email: email,
-          phone: phone || '',
+          phone: formattedPhone,
         })
         .select()
         .single()
