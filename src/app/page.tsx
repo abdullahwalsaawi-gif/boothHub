@@ -3,6 +3,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
 import FeaturedExhibitions from "@/components/FeaturedExhibitions";
+import CTASection from "@/components/CTASection";
 import { ArrowLeft, Calendar, MapPin, Store, LayoutDashboard, MousePointerClick, BarChart3, Sparkles } from "lucide-react";
 import { getExhibitions } from "@/app/actions/exhibitions";
 
@@ -159,27 +160,8 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* CTA */}
-        <section className="py-24 bg-gradient-to-br from-primary to-primary-dark text-white relative overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-white/5 rounded-full blur-3xl"></div>
-          </div>
-          <div className="container mx-auto px-4 md:px-6 relative z-10 text-center max-w-3xl">
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">جاهز تبدأ تجربتك مع بوث هب؟</h2>
-            <p className="text-blue-100 text-lg mb-10">
-              سواء كنت منظمًا أو عارضًا، نوفر لك الأدوات المناسبة لإدارة تجربتك بسهولة.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link href="/explore" className="w-full sm:w-auto px-8 py-3.5 bg-white text-primary-dark rounded-xl font-bold hover:bg-gray-50 transition-colors shadow-lg">
-                استكشف المعارض
-              </Link>
-              <Link href="/register" className="w-full sm:w-auto px-8 py-3.5 bg-primary-dark text-white border border-white/20 rounded-xl font-bold hover:bg-white/10 transition-colors">
-                إنشاء حساب جديد
-              </Link>
-            </div>
-          </div>
-        </section>
+        {/* CTA Section */}
+        <CTASection />
       </main>
 
       <Footer />
