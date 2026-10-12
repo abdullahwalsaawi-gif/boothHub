@@ -18,3 +18,28 @@ export function formatSaudiPhoneNumber(phone: string): string {
   }
   return '+' + cleaned
 }
+
+/**
+ * Returns the unified realistic image for an exhibition matching the homepage
+ */
+export function getExhibitionImage(ex: { title?: string; category?: string; cover_image_url?: string | null }, index?: number): string {
+  if (ex.cover_image_url && ex.cover_image_url.startsWith('http')) {
+    return ex.cover_image_url;
+  }
+  const title = ex.title?.toLowerCase() || '';
+  const cat = ex.category?.toLowerCase() || '';
+  
+  if (title.includes('تقنية') || cat.includes('تقنية')) {
+    return '/images/exhibition-tech.jpg';
+  }
+  if (title.includes('كليجا') || cat.includes('أغذية')) {
+    return '/images/exhibition-kleija.jpg';
+  }
+  if (title.includes('كتاب') || cat.includes('ثقافة')) {
+    return '/images/exhibition-book.jpg';
+  }
+  
+  if (index === 0) return '/images/exhibition-tech.jpg';
+  if (index === 1) return '/images/exhibition-kleija.jpg';
+  return '/images/exhibition-book.jpg';
+}
