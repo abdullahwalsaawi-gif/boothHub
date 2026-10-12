@@ -167,8 +167,10 @@ npm run dev
 ---
 
 ## 🌐 روابط النشر
-* **المستودع الرسمي على GitHub**: `https://github.com/<USERNAME>/boothhub`
-* **الرابط المباشر على Vercel**: *(يتم التحديث فور اكتمال النشر الأول)*
+* **المستودع الرسمي على GitHub**: [github.com/abdullahwalsaawi-gif/boothHub](https://github.com/abdullahwalsaawi-gif/boothHub)
+* **رابط المنصة المحلي (Local Development)**: [http://localhost:3000](http://localhost:3000)
+* **رابط الشبكة المحلية (Network)**: [http://172.20.10.2:3000](http://172.20.10.2:3000)
+* **الرابط المنشور على Vercel**: متوفر عبر لوحة تحكم Vercel المرتبطة بالمستودع
 
 ---
 **بوث هب | Booth Hub © 2026**
