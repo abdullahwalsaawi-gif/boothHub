@@ -5,6 +5,8 @@ import Footer from '@/components/Footer';
 import Floorplan from '@/components/Floorplan';
 import { MapPin, Calendar, Clock, Info, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { getExhibitionById } from '@/app/actions/exhibitions';
+import { isUserExhibitionManager } from '@/app/actions/bookings';
+import { createClient } from '@/lib/supabase/server';
 import { getExhibitionImage } from '@/lib/utils';
 import { notFound } from 'next/navigation';
 
@@ -19,6 +21,10 @@ export default async function ExhibitionDetails({
   if (!exhibition) {
     notFound();
   }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const isOrganizer = user ? await isUserExhibitionManager(user.id, user.email, exhibition.id) : false;
 
   const imageSrc = getExhibitionImage(exhibition);
 
@@ -112,7 +118,7 @@ export default async function ExhibitionDetails({
             </div>
             
             {/* Interactive Floorplan component */}
-            <Floorplan exhibitionId={exhibition.id} />
+            <Floorplan exhibitionId={exhibition.id} isOrganizer={isOrganizer} />
           </div>
 
           {/* Exhibition Details and Guidelines */}

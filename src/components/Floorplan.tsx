@@ -1,15 +1,22 @@
 "use client"
 import { useState, useEffect } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, CheckCircle2, AlertCircle, Loader2, Store, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, CheckCircle2, AlertCircle, Loader2, Store, X, Settings2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { getExhibitionBooths, createBooking, BoothData } from '@/app/actions/bookings';
+import { getExhibitionBooths, createBooking, checkIsExhibitionManagerAction, BoothData } from '@/app/actions/bookings';
 import { createClient } from '@/lib/supabase/client';
 
-export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
+export default function Floorplan({ 
+  exhibitionId, 
+  isOrganizer: initialIsOrganizer = false 
+}: { 
+  exhibitionId: string
+  isOrganizer?: boolean 
+}) {
   const [booths, setBooths] = useState<BoothData[]>([]);
   const [loading, setLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const [selectedBooth, setSelectedBooth] = useState<BoothData | null>(null);
+  const [isOrganizer, setIsOrganizer] = useState(initialIsOrganizer);
 
   // Booking modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,6 +44,9 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
           setContactName(user.user_metadata?.full_name || '');
           setContactPhone(user.user_metadata?.phone || '');
           setOrgName(user.user_metadata?.organization_name || '');
+
+          const managerStatus = await checkIsExhibitionManagerAction(exhibitionId);
+          setIsOrganizer(managerStatus);
         }
       } catch (e) {
         console.error('Error loading booths:', e);
@@ -62,6 +72,10 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
   };
 
   const handleStartBooking = () => {
+    if (isOrganizer) {
+      setBookingError('لا يمكنك حجز بوث في معرض تديره. يمكنك إدارة البوثات والحجوزات من لوحة تحكم المنظم.');
+      return;
+    }
     setBookingError(null);
     setBookingSuccess(null);
     setIsModalOpen(true);
@@ -70,6 +84,11 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
   const handleConfirmBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedBooth) return;
+
+    if (isOrganizer) {
+      setBookingError('لا يمكنك حجز بوث في معرض تديره. يمكنك إدارة البوثات والحجوزات من لوحة تحكم المنظم.');
+      return;
+    }
 
     setBookingLoading(true);
     setBookingError(null);
@@ -107,7 +126,32 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row gap-6 relative">
+    <div className="w-full">
+      {/* Organizer Status Banner */}
+      {isOrganizer && (
+        <div className="bg-white border-2 border-primary/20 rounded-2xl p-4 mb-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-light-blue-bg text-primary flex items-center justify-center shrink-0">
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <span className="font-bold text-sm text-primary-dark block mb-0.5">أنت منظم / مدير هذا المعرض</span>
+              <p className="text-xs text-foreground">
+                يمكنك استعراض المخطط وتفاصيل البوثات هنا، ولإجراء أي تعديلات أو إدارة طلبات الحجز استخدم لوحة تحكم المنظم.
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/dashboard/organizer/exhibitions/${exhibitionId}/floorplan`}
+            className="inline-flex items-center justify-center gap-2 text-xs font-bold text-white bg-primary hover:bg-primary/90 px-5 py-2.5 rounded-xl transition-all shadow-md shadow-primary/20 shrink-0"
+          >
+            <Settings2 size={15} />
+            <span>إدارة المعرض والمخطط</span>
+          </Link>
+        </div>
+      )}
+
+      <div className="flex flex-col lg:flex-row gap-6 relative">
       {/* Floorplan Viewer */}
       <div className="flex-1 bg-white border border-border rounded-2xl overflow-hidden relative shadow-sm flex flex-col h-[520px]">
         {/* Toolbar */}
@@ -183,7 +227,7 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
                         <g 
                           key={booth.id} 
                           onClick={() => {
-                            if (booth.status === 'available') {
+                            if (isOrganizer || booth.status === 'available') {
                               setSelectedBooth(booth);
                             }
                           }}
@@ -295,7 +339,31 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
                 </ul>
               </div>
 
-              {selectedBooth.status === 'available' ? (
+              {isOrganizer ? (
+                <div className="space-y-3 pt-2">
+                  <div className="bg-white border-2 border-primary/20 rounded-2xl p-4 shadow-sm text-right">
+                    <div className="flex items-start gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-light-blue-bg text-primary flex items-center justify-center shrink-0 mt-0.5">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-primary-dark text-xs mb-1">صلاحيات إدارة المعرض</h4>
+                        <p className="text-xs text-foreground leading-relaxed">
+                          لا يمكنك حجز بوث في معرض تديره. يمكنك إدارة البوثات والحجوزات من لوحة تحكم المنظم.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link 
+                    href={`/dashboard/organizer/exhibitions/${exhibitionId}/floorplan`}
+                    className="w-full bg-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 text-sm flex items-center justify-center gap-2 text-center"
+                  >
+                    <Settings2 size={16} />
+                    <span>إدارة المعرض</span>
+                  </Link>
+                </div>
+              ) : selectedBooth.status === 'available' ? (
                 <button 
                   onClick={handleStartBooking}
                   className="w-full bg-primary text-white py-3.5 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 text-sm"
@@ -311,8 +379,23 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center text-gray-400 py-16">
               <Store size={44} className="mb-4 opacity-25" />
-              <p className="font-medium text-sm text-primary-dark mb-1">اختر بوثاً من المخطط</p>
-              <p className="text-xs text-foreground">انقر على أي بوث أخضر لعرض سعره ومساحته وتجهيزاته وبدء الحجز.</p>
+              <p className="font-medium text-sm text-primary-dark mb-1">
+                {isOrganizer ? 'استعراض بوثات المعرض' : 'اختر بوثاً من المخطط'}
+              </p>
+              <p className="text-xs text-foreground mb-4">
+                {isOrganizer 
+                  ? 'انقر على أي بوث لاستعراض تفاصيله وأبعاده وتجهيزاته وسعره.'
+                  : 'انقر على أي بوث أخضر لعرض سعره ومساحته وتجهيزاته وبدء الحجز.'}
+              </p>
+              {isOrganizer && (
+                <Link
+                  href={`/dashboard/organizer/exhibitions/${exhibitionId}/floorplan`}
+                  className="px-4 py-2 bg-secondary-bg border border-border rounded-xl text-primary font-bold text-xs hover:bg-light-blue-bg transition-colors flex items-center gap-1.5"
+                >
+                  <Settings2 size={14} />
+                  <span>إدارة المعرض</span>
+                </Link>
+              )}
             </div>
           )}
         </div>
@@ -446,6 +529,7 @@ export default function Floorplan({ exhibitionId }: { exhibitionId: string }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

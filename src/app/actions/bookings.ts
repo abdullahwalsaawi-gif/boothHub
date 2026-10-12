@@ -111,6 +111,69 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
   }
 }
 
+export async function isUserExhibitionManager(
+  userId: string,
+  userEmail: string | undefined,
+  exhibitionId: string
+): Promise<boolean> {
+  if (!userId || !exhibitionId) return false
+  try {
+    const supabase = await createClient()
+
+    // 1. Fetch exhibition to get its organization_id
+    const { data: exh } = await supabase
+      .from('exhibitions')
+      .select('id, organization_id')
+      .eq('id', exhibitionId)
+      .maybeSingle()
+
+    if (!exh || !exh.organization_id) {
+      return false
+    }
+
+    // 2. Check if user is an authorized organization member (owner / admin / member)
+    const { data: member } = await supabase
+      .from('organization_members')
+      .select('id, role')
+      .eq('organization_id', exh.organization_id)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    if (member) {
+      return true
+    }
+
+    // 3. Check if user email matches organization contact_email
+    if (userEmail) {
+      const { data: org } = await supabase
+        .from('organizations')
+        .select('id, contact_email')
+        .eq('id', exh.organization_id)
+        .maybeSingle()
+
+      if (org?.contact_email && org.contact_email.trim().toLowerCase() === userEmail.trim().toLowerCase()) {
+        return true
+      }
+    }
+
+    return false
+  } catch (err) {
+    console.error('Error verifying exhibition manager permissions:', err)
+    return false
+  }
+}
+
+export async function checkIsExhibitionManagerAction(exhibitionId: string): Promise<boolean> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+    return await isUserExhibitionManager(user.id, user.email, exhibitionId)
+  } catch {
+    return false
+  }
+}
+
 export async function createBooking(data: {
   boothId: string
   exhibitionId: string
@@ -129,18 +192,45 @@ export async function createBooking(data: {
     }
   }
 
+  // 1. Verify booth exists and resolve its true exhibition_id directly from the database
+  const { data: boothRecord, error: boothFetchError } = await supabase
+    .from('booths')
+    .select('id, exhibition_id, price, currency, operational_status')
+    .eq('id', data.boothId)
+    .maybeSingle()
+
+  const targetExhibitionId = boothRecord?.exhibition_id || data.exhibitionId
+
+  // 2. SERVER-SIDE SECURITY CHECK:
+  // Strictly prevent exhibition organizers/managers/owners from booking booths in their own exhibitions!
+  const isManager = await isUserExhibitionManager(user.id, user.email, targetExhibitionId)
+  if (isManager) {
+    return {
+      success: false,
+      isOrganizer: true,
+      error: 'لا يمكنك حجز بوث في معرض تديره. يمكنك إدارة البوثات والحجوزات من لوحة تحكم المنظم.'
+    }
+  }
+
+  if (boothRecord && boothRecord.operational_status !== 'operational') {
+    return {
+      success: false,
+      error: 'عذراً! هذا البوث غير متاح حالياً للحجز (تحت الصيانة أو مغلق).'
+    }
+  }
+
   // Attempt to call RPC first for atomic locking
   try {
     const { data: rpcData, error: rpcError } = await supabase.rpc('create_booth_booking', {
       p_booth_id: data.boothId,
-      p_exhibition_id: data.exhibitionId,
+      p_exhibition_id: targetExhibitionId,
       p_organization_name: data.organizationName || '',
       p_contact_name: data.contactName,
       p_contact_phone: data.contactPhone
     })
 
     if (!rpcError && rpcData?.success) {
-      revalidatePath(`/explore/${data.exhibitionId}`)
+      revalidatePath(`/explore/${targetExhibitionId}`)
       revalidatePath('/dashboard/exhibitor')
       return { 
         success: true, 
@@ -149,8 +239,17 @@ export async function createBooking(data: {
       }
     }
 
-    if (rpcError && rpcError.message.includes('محجوز بالفعل')) {
-      return { success: false, error: 'عذراً! تم حجز هذا البوث من قبل عارض آخر' }
+    if (rpcError) {
+      if (rpcError.message.includes('لا يمكنك حجز بوث في معرض تديره')) {
+        return {
+          success: false,
+          isOrganizer: true,
+          error: 'لا يمكنك حجز بوث في معرض تديره. يمكنك إدارة البوثات والحجوزات من لوحة تحكم المنظم.'
+        }
+      }
+      if (rpcError.message.includes('محجوز بالفعل')) {
+        return { success: false, error: 'عذراً! تم حجز هذا البوث من قبل عارض آخر' }
+      }
     }
   } catch (e) {
     console.log('RPC execution fallback to direct insert')
@@ -170,12 +269,6 @@ export async function createBooking(data: {
       return { success: false, error: 'عذراً! هذا البوث محجوز بالفعل' }
     }
 
-    const { data: booth } = await supabase
-      .from('booths')
-      .select('price, currency')
-      .eq('id', data.boothId)
-      .single()
-
     const reference = 'BH-' + Math.floor(100000 + Math.random() * 900000)
 
     const { data: booking, error: insertError } = await supabase
@@ -183,13 +276,13 @@ export async function createBooking(data: {
       .insert({
         booking_reference: reference,
         booth_id: data.boothId,
-        exhibition_id: data.exhibitionId,
+        exhibition_id: targetExhibitionId,
         exhibitor_id: user.id,
         organization_name: data.organizationName || user.user_metadata?.organization_name || '',
         contact_name: data.contactName,
         contact_phone: data.contactPhone,
-        total_amount: booth?.price || 5000,
-        currency: booth?.currency || 'SAR',
+        total_amount: boothRecord?.price || 5000,
+        currency: boothRecord?.currency || 'SAR',
         status: 'pending'
       })
       .select()
@@ -199,7 +292,7 @@ export async function createBooking(data: {
       return { success: false, error: insertError.message }
     }
 
-    revalidatePath(`/explore/${data.exhibitionId}`)
+    revalidatePath(`/explore/${targetExhibitionId}`)
     revalidatePath('/dashboard/exhibitor')
     return { success: true, bookingReference: reference, bookingId: booking.id }
   } catch (err: any) {
@@ -252,11 +345,37 @@ export async function getOrganizerBookings(): Promise<BookingRecord[]> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
-    // Fetch IDs of exhibitions owned by this organizer
+    // Fetch user's organization IDs
+    const { data: members } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+
+    const orgIds: string[] = members?.map(m => m.organization_id).filter(Boolean) || []
+
+    if (user.email) {
+      const { data: emailOrgs } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('contact_email', user.email)
+
+      if (emailOrgs) {
+        emailOrgs.forEach(o => {
+          if (o.id && !orgIds.includes(o.id)) {
+            orgIds.push(o.id)
+          }
+        })
+      }
+    }
+
+    if (orgIds.length === 0) {
+      return []
+    }
+
     const { data: myExhibitions } = await supabase
       .from('exhibitions')
       .select('id')
-      .eq('organizer_id', user.id)
+      .in('organization_id', orgIds)
 
     const myExhibitionIds = myExhibitions?.map(e => e.id) || []
     if (myExhibitionIds.length === 0) {
