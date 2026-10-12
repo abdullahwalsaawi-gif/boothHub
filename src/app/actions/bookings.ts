@@ -234,13 +234,25 @@ export async function getOrganizerBookings(): Promise<BookingRecord[]> {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return []
 
+    // Fetch IDs of exhibitions owned by this organizer
+    const { data: myExhibitions } = await supabase
+      .from('exhibitions')
+      .select('id')
+      .eq('organizer_id', user.id)
+
+    const myExhibitionIds = myExhibitions?.map(e => e.id) || []
+    if (myExhibitionIds.length === 0) {
+      return []
+    }
+
     const { data, error } = await supabase
       .from('bookings')
       .select(`
         *,
-        exhibitions!inner (title, organization_id),
+        exhibitions (title),
         booths (booth_number)
       `)
+      .in('exhibition_id', myExhibitionIds)
       .order('created_at', { ascending: false })
 
     if (error || !data) return []

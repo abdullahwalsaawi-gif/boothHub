@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { Home, LayoutDashboard, Store, Users, BarChart3, Bell, Settings, LogOut, Sparkles } from 'lucide-react';
+import { Home, LayoutDashboard, Store, Users, BarChart3, Bell, Settings, LogOut, Sparkles, Plus, Calendar, MapPin, Eye, Trash2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/server';
 import { signOut } from '@/app/actions/auth';
-import { getExhibitions } from '@/app/actions/exhibitions';
+import { getOrganizerExhibitions, deleteExhibition } from '@/app/actions/exhibitions';
 import { getOrganizerBookings } from '@/app/actions/bookings';
 import CreateExhibitionModal from '@/components/CreateExhibitionModal';
 import { redirect } from 'next/navigation';
@@ -21,12 +21,13 @@ export default async function OrganizerDashboard() {
     .eq('id', user.id)
     .single();
 
-  const exhibitions = await getExhibitions();
+  // Strict Organizer Isolation: Fetch ONLY exhibitions and bookings owned by this user
+  const exhibitions = await getOrganizerExhibitions();
   const bookings = await getOrganizerBookings();
 
-  // Metrics
+  // Metrics calculated strictly for this organizer's events
   const activeExhibitions = exhibitions.length;
-  const totalBooths = exhibitions.reduce((acc, curr) => acc + (curr.total_booths || 9), 0);
+  const totalBooths = exhibitions.reduce((acc, curr) => acc + (curr.total_booths || 0), 0);
   const bookedBooths = bookings.filter(b => b.status === 'confirmed' || b.status === 'pending').length;
   const occupancyRate = totalBooths > 0 ? Math.round((bookedBooths / totalBooths) * 100) : 0;
   const totalRevenue = bookings
@@ -53,7 +54,7 @@ export default async function OrganizerDashboard() {
             </Link>
             <Link href="/explore" className="flex items-center gap-3 px-3 py-2.5 hover:bg-white/5 hover:text-white rounded-lg transition-colors">
               <Store size={18} />
-              <span>معارض المنصة</span>
+              <span>معارض المنصة العامة</span>
             </Link>
             <Link href="/ai-assistant" className="flex items-center gap-3 px-3 py-2.5 text-coral hover:bg-white/5 rounded-lg transition-colors font-medium">
               <Sparkles size={18} />
@@ -106,43 +107,129 @@ export default async function OrganizerDashboard() {
         <div className="p-6 overflow-auto">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
             <div>
-              <h2 className="text-xl font-bold text-primary-dark">مركز إدارة المعارض والبوثات</h2>
-              <p className="text-xs text-foreground">بيانات تشغيلية حية محسوبة من قاعدة بيانات النظام.</p>
+              <h2 className="text-xl font-bold text-primary-dark">مركز إدارة معارضي الخاصة</h2>
+              <p className="text-xs text-foreground">بيانات تشغيلية حصرية بمعارضك وبوثاتك وحجوزاتها.</p>
             </div>
+            <CreateExhibitionModal />
           </div>
           
-          {/* Key Metrics */}
+          {/* Key Metrics strictly for this organizer */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
-              <p className="text-xs text-foreground mb-1">المعارض النشطة</p>
+              <p className="text-xs text-foreground mb-1">معارضي النشطة</p>
               <p className="text-3xl font-bold text-primary-dark mb-2">{activeExhibitions}</p>
-              <p className="text-xs text-green-600">منشورة ومتاحة للحجز</p>
+              <p className="text-xs text-green-600">منشورة باسم حسابك</p>
             </div>
             <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
-              <p className="text-xs text-foreground mb-1">إجمالي البوثات</p>
+              <p className="text-xs text-foreground mb-1">إجمالي بوثاتي</p>
               <p className="text-3xl font-bold text-primary-dark mb-2">{totalBooths}</p>
-              <p className="text-xs text-foreground">في مختلف القاعات</p>
+              <p className="text-xs text-foreground">في صالات معارضك</p>
             </div>
             <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
-              <p className="text-xs text-foreground mb-1">نسبة الإشغال</p>
+              <p className="text-xs text-foreground mb-1">نسبة إشغال بوثاتي</p>
               <p className="text-3xl font-bold text-primary-dark mb-2">{occupancyRate}%</p>
               <p className="text-xs text-primary font-medium">{bookedBooths} بوث محجوز</p>
             </div>
             <div className="bg-white p-5 rounded-2xl border border-border shadow-sm">
-              <p className="text-xs text-foreground mb-1">إجمالي الإيرادات المتوقعة</p>
+              <p className="text-xs text-foreground mb-1">إجمالي إيراداتي المتوقعة</p>
               <p className="text-3xl font-bold text-primary-dark mb-2">{totalRevenue.toLocaleString()} <span className="text-sm font-normal">ريال</span></p>
-              <p className="text-xs text-green-600">من الحجوزات النشطة</p>
+              <p className="text-xs text-green-600">من حجوزات معارضك</p>
             </div>
           </div>
 
+          {/* Section 1: My Exhibitions List */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg text-primary-dark">قائمة معارضي وإدارة بوثاتها</h3>
+              <span className="text-xs text-gray-500 font-medium">إجمالي {exhibitions.length} معرض</span>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+              {exhibitions.length === 0 ? (
+                <div className="text-center py-12 px-4">
+                  <div className="w-12 h-12 bg-light-blue-bg text-primary rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Store size={24} />
+                  </div>
+                  <p className="text-base font-bold text-primary-dark mb-1">لم تقم بإضافة أي معارض بعد</p>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto mb-5">
+                    بصفتك منظم معارض، يمكنك الآن إنشاء أول معرض وتحديد القاعة وتوليد مخطط البوثات لتمكين العارضين من الحجز فوراً.
+                  </p>
+                  <CreateExhibitionModal />
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-right text-sm">
+                    <thead className="bg-secondary-bg border-b border-border text-foreground">
+                      <tr>
+                        <th className="p-4 font-medium">اسم المعرض</th>
+                        <th className="p-4 font-medium">المدينة والمقر</th>
+                        <th className="p-4 font-medium">التاريخ</th>
+                        <th className="p-4 font-medium">البوثات (المتاحة / الإجمالي)</th>
+                        <th className="p-4 font-medium">الحالة</th>
+                        <th className="p-4 font-medium text-center">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {exhibitions.map((ex) => (
+                        <tr key={ex.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="p-4">
+                            <p className="font-bold text-primary-dark">{ex.title}</p>
+                            <span className="text-xs text-gray-400">{ex.category}</span>
+                          </td>
+                          <td className="p-4 text-foreground">
+                            <div className="flex items-center gap-1.5 text-xs">
+                              <MapPin size={14} className="text-gray-400 shrink-0" />
+                              <span>{ex.city} - {ex.venue}</span>
+                            </div>
+                          </td>
+                          <td className="p-4 text-xs text-foreground">
+                            <div className="flex items-center gap-1.5">
+                              <Calendar size={14} className="text-gray-400 shrink-0" />
+                              <span>{ex.start_date} إلى {ex.end_date}</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-primary">{ex.available_booths || 0}</span>
+                              <span className="text-xs text-gray-400">من أصل {ex.total_booths || 0}</span>
+                            </div>
+                          </td>
+                          <td className="p-4">
+                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                              ex.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {ex.status === 'published' ? 'منشور' : 'مسودة'}
+                            </span>
+                          </td>
+                          <td className="p-4 text-center">
+                            <div className="flex items-center justify-center gap-2">
+                              <Link 
+                                href={`/explore/${ex.id}`}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-light-blue-bg text-primary text-xs font-medium rounded-lg hover:bg-primary hover:text-white transition-colors"
+                              >
+                                <Eye size={14} />
+                                <span>معاينة المخطط</span>
+                              </Link>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Section 2: Bookings for My Exhibitions & AI Tools */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
-              <h3 className="font-bold text-lg text-primary-dark mb-4">أحدث طلبات الحجز</h3>
+              <h3 className="font-bold text-lg text-primary-dark mb-4">طلبات الحجز لمعارضي فقط</h3>
               <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
                 {bookings.length === 0 ? (
                   <div className="text-center py-10 px-4">
-                    <p className="text-sm font-medium text-primary-dark mb-1">لا توجد طلبات حجز حالياً</p>
-                    <p className="text-xs text-gray-500">عندما يقوم العارضون بحجز بوثات ستظهر الطلبات وتفاصيلها هنا فوراً.</p>
+                    <p className="text-sm font-medium text-primary-dark mb-1">لا توجد طلبات حجز لمعارضك حالياً</p>
+                    <p className="text-xs text-gray-500">عندما يقوم العارضون بطلب حجز بوث في معارضك، ستظهر تفاصيلهم وأرقام التواصل هنا مباشرة.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -151,6 +238,7 @@ export default async function OrganizerDashboard() {
                         <tr>
                           <th className="p-4 font-medium">المرجع</th>
                           <th className="p-4 font-medium">اسم العارض / الجهة</th>
+                          <th className="p-4 font-medium">المعرض</th>
                           <th className="p-4 font-medium">رقم البوث</th>
                           <th className="p-4 font-medium">المبلغ</th>
                           <th className="p-4 font-medium">الحالة</th>
@@ -161,6 +249,7 @@ export default async function OrganizerDashboard() {
                           <tr key={booking.id} className="hover:bg-gray-50 transition-colors">
                             <td className="p-4 font-mono font-bold text-xs text-primary">{booking.booking_reference}</td>
                             <td className="p-4 font-medium text-primary-dark">{booking.organization_name || booking.contact_name}</td>
+                            <td className="p-4 text-xs text-gray-500">{booking.exhibition_title}</td>
                             <td className="p-4 font-bold">{booking.booth_number}</td>
                             <td className="p-4 text-foreground">{booking.total_amount} {booking.currency}</td>
                             <td className="p-4">
@@ -201,13 +290,13 @@ export default async function OrganizerDashboard() {
                 </div>
 
                 <div className="p-4 bg-secondary-bg rounded-xl border border-border">
-                  <h4 className="font-bold text-xs text-primary-dark mb-1">معارضي النشطة</h4>
-                  <p className="text-xs text-gray-500 mb-3">{exhibitions.length} معارض مسجلة في المنصة</p>
+                  <h4 className="font-bold text-xs text-primary-dark mb-1">المعارض العامة بالمنصة</h4>
+                  <p className="text-xs text-gray-500 mb-3">استعرض معارض المنصة المنشورة كما يراها الزوار والمستأجرون.</p>
                   <Link 
                     href="/explore"
                     className="w-full inline-block text-center py-2 bg-white border border-border text-xs font-medium rounded-lg hover:border-primary text-primary transition-colors"
                   >
-                    استعراض المعارض كما يراها الزوار
+                    استعراض المعارض العامة
                   </Link>
                 </div>
               </div>

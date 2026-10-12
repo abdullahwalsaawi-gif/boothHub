@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 export type Exhibition = {
   id: string
   organization_id?: string
+  organizer_id?: string
   title: string
   description: string
   category: string
@@ -213,6 +214,7 @@ export async function createExhibition(formData: FormData) {
     .from('exhibitions')
     .insert({
       organization_id: organizationId,
+      organizer_id: user.id,
       title,
       description,
       category,
@@ -246,4 +248,94 @@ export async function createExhibition(formData: FormData) {
   revalidatePath('/dashboard/organizer')
 
   return { success: true, exhibitionId: data.id }
+}
+
+// Fetch exhibitions owned exclusively by the authenticated organizer
+export async function getOrganizerExhibitions(): Promise<Exhibition[]> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    // Fetch user's organization members if any
+    const { data: members } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+
+    const orgIds = members?.map(m => m.organization_id).filter(Boolean) || []
+
+    let query = supabase
+      .from('exhibitions')
+      .select(`
+        *,
+        organizations (name),
+        booths (id, operational_status)
+      `)
+
+    // Filter by organizer_id = current user, or user's organization
+    if (orgIds.length > 0) {
+      query = query.or(`organizer_id.eq.${user.id},organization_id.in.(${orgIds.join(',')})`)
+    } else {
+      query = query.eq('organizer_id', user.id)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+
+    if (error || !data) {
+      return []
+    }
+
+    return data.map((item: any) => ({
+      ...item,
+      organization_name: item.organizations?.name,
+      total_booths: item.booths?.length || 0,
+      available_booths: item.booths?.filter((b: any) => b.operational_status === 'operational').length || 0
+    }))
+  } catch (err) {
+    console.error('Error fetching organizer exhibitions:', err)
+    return []
+  }
+}
+
+// Secure delete exhibition with ownership verification
+export async function deleteExhibition(id: string) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'يجب تسجيل الدخول كمنظم أولاً' }
+    }
+
+    // Authorization check
+    const { data: existing } = await supabase
+      .from('exhibitions')
+      .select('id, organizer_id')
+      .eq('id', id)
+      .single()
+
+    if (!existing) {
+      return { success: false, error: 'المعرض غير موجود' }
+    }
+
+    if (existing.organizer_id && existing.organizer_id !== user.id) {
+      return { success: false, error: 'مرفوض: ليس لديك صلاحية حذف هذا المعرض' }
+    }
+
+    const { error } = await supabase
+      .from('exhibitions')
+      .delete()
+      .eq('id', id)
+      .eq('organizer_id', user.id)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    revalidatePath('/explore')
+    revalidatePath('/dashboard/organizer')
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'حدث خطأ أثناء حذف المعرض' }
+  }
 }
