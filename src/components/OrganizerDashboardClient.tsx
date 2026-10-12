@@ -353,7 +353,7 @@ export default function OrganizerDashboardClient({
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-100 bg-gradient-to-l from-white via-white to-blue-50/40">
           <Link href="/" className="flex items-center group py-1" aria-label="بوث هب | Booth Hub">
             <img 
-              src="/branding/logo.png" 
+              src="/branding/logo.png?v=3" 
               alt="بوث هب | Booth Hub" 
               className="h-9 sm:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />

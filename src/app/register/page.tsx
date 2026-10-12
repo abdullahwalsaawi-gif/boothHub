@@ -53,12 +53,12 @@ export default function Register() {
             <span>العودة للرئيسية</span>
           </Link>
 
-          <div className="md:hidden mb-6">
-            <Link href="/" className="inline-block" aria-label="بوث هب | Booth Hub">
+          <div className="mb-6">
+            <Link href="/" className="inline-block group" aria-label="بوث هب | Booth Hub">
               <img 
-                src="/branding/logo.png" 
+                src="/branding/logo.png?v=3" 
                 alt="بوث هب | Booth Hub" 
-                className="h-9 w-auto object-contain"
+                className="h-11 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
           </div>
@@ -286,7 +286,7 @@ export default function Register() {
         <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-[#E2E8F0]">
           <Link href="/" className="inline-block mb-6 group" aria-label="بوث هب | Booth Hub">
             <img 
-              src="/branding/logo.png" 
+              src="/branding/logo.png?v=3" 
               alt="بوث هب | Booth Hub" 
               className="h-14 w-auto object-contain mx-auto transition-transform duration-300 group-hover:scale-105 drop-shadow-sm"
             />

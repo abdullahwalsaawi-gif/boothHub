@@ -49,10 +49,10 @@ export default function Login() {
           <div className="absolute top-36 right-[12%] w-2.5 h-2.5 rounded-full bg-[#0868E9]/30"></div>
           <div className="absolute bottom-28 left-[10%] w-3 h-3 rounded-full bg-[#FF6D5C]/30"></div>
         </div>
-        <div className="relative z-10 max-w-md">
-          <Link href="/" className="inline-block mb-8 group" aria-label="بوث هب | Booth Hub">
+        <div className="relative z-10 w-full max-w-md bg-white/95 backdrop-blur-md p-8 md:p-10 rounded-3xl shadow-xl border border-slate-100 text-center">
+          <Link href="/" className="inline-block mb-6 group" aria-label="بوث هب | Booth Hub">
             <img 
-              src="/branding/logo.png" 
+              src="/branding/logo.png?v=3" 
               alt="بوث هب | Booth Hub" 
               className="h-16 w-auto object-contain mx-auto transition-transform duration-300 group-hover:scale-105 drop-shadow-sm"
             />
@@ -61,7 +61,7 @@ export default function Login() {
           <p className="text-[#65789A] text-base leading-relaxed mb-6 font-normal">
             سجّل دخولك لمتابعة معارضك وحجوزاتك بكل سهولة وأمان عبر بريدك الإلكتروني.
           </p>
-          <div className="inline-flex items-center gap-2 bg-white/90 backdrop-blur-md px-4 py-2.5 rounded-2xl text-xs font-semibold text-[#102E70] border border-[#0868E9]/15 shadow-sm">
+          <div className="inline-flex items-center gap-2 bg-[#F8FAFC] px-4 py-2.5 rounded-2xl text-xs font-semibold text-[#102E70] border border-[#0868E9]/15 shadow-sm">
             <ShieldCheck size={16} className="text-[#0868E9]" />
             <span>منصة موثوقة لحجز وإدارة المعارض والبوثات</span>
           </div>
@@ -71,17 +71,18 @@ export default function Login() {
       {/* Form Side */}
       <div className="flex-1 flex flex-col justify-center px-6 py-12 md:px-16 lg:px-24">
         <div className="w-full max-w-sm mx-auto">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm text-[#65789A] hover:text-[#0868E9] transition-colors mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-[#65789A] hover:text-[#0868E9] transition-colors mb-6">
             <ArrowRight size={16} />
             <span>العودة للرئيسية</span>
           </Link>
 
-          <div className="md:hidden mb-6">
-            <Link href="/" className="inline-block" aria-label="بوث هب | Booth Hub">
+          {/* Official Booth Hub Logo above form title (visible on all screen sizes) */}
+          <div className="mb-6">
+            <Link href="/" className="inline-block group" aria-label="بوث هب | Booth Hub">
               <img 
-                src="/branding/logo.png" 
+                src="/branding/logo.png?v=3" 
                 alt="بوث هب | Booth Hub" 
-                className="h-10 w-auto object-contain"
+                className="h-11 sm:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
               />
             </Link>
           </div>

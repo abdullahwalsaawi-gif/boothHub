@@ -93,7 +93,7 @@ export default function Footer() {
               <Link href="/" className="inline-block mb-5 group self-start">
                 <div className="inline-flex items-center bg-white px-4 py-2.5 rounded-2xl shadow-md hover:shadow-lg transition-all duration-300">
                   <img
-                    src="/branding/logo.png"
+                    src="/branding/logo.png?v=3"
                     alt="بوث هب | Booth Hub"
                     className="h-9 sm:h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   />

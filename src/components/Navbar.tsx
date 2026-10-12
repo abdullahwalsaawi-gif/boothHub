@@ -68,7 +68,7 @@ export default function Navbar() {
         <div className="flex items-center">
           <Link href="/" className="flex items-center group py-1" aria-label="بوث هب | Booth Hub">
             <img 
-              src="/branding/logo.png" 
+              src="/branding/logo.png?v=3" 
               alt="بوث هب | Booth Hub" 
               className="h-10 sm:h-11 md:h-12 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />
