@@ -26,14 +26,44 @@ export type BookingRecord = {
   booth_id: string
   exhibition_id: string
   exhibition_title?: string
+  exhibition_city?: string
+  exhibition_venue?: string
+  exhibition_dates?: string
   booth_number?: string
+  booth_size_sqm?: number
+  booth_price?: number
   organization_name?: string
   contact_name: string
   contact_phone: string
+  contact_email?: string
   total_amount: number
   currency: string
   status: 'pending' | 'confirmed' | 'cancelled' | 'rejected' | 'expired'
+  payment_status?: 'paid' | 'pending' | 'unpaid'
   created_at: string
+}
+
+export type OrganizerBoothRecord = {
+  id: string
+  booth_number: string
+  exhibition_id: string
+  exhibition_title: string
+  size_sqm: number
+  price: number
+  currency: string
+  operational_status: 'operational' | 'maintenance' | 'disabled'
+  status: 'available' | 'pending' | 'booked' | 'unavailable'
+  booking?: {
+    id: string
+    booking_reference: string
+    contact_name: string
+    contact_phone?: string
+    contact_email?: string
+    organization_name?: string
+    status: 'pending' | 'confirmed'
+    total_amount: number
+    created_at?: string
+  }
 }
 
 export async function getExhibitionBooths(exhibitionId: string): Promise<BoothData[]> {
@@ -386,8 +416,8 @@ export async function getOrganizerBookings(): Promise<BookingRecord[]> {
       .from('bookings')
       .select(`
         *,
-        exhibitions (title),
-        booths (booth_number)
+        exhibitions (id, title, city, venue, start_date, end_date),
+        booths (id, booth_number, size_sqm, price)
       `)
       .in('exhibition_id', myExhibitionIds)
       .order('created_at', { ascending: false })
@@ -400,17 +430,218 @@ export async function getOrganizerBookings(): Promise<BookingRecord[]> {
       booth_id: b.booth_id,
       exhibition_id: b.exhibition_id,
       exhibition_title: b.exhibitions?.title || 'معرض',
+      exhibition_city: b.exhibitions?.city,
+      exhibition_venue: b.exhibitions?.venue,
+      exhibition_dates: b.exhibitions?.start_date && b.exhibitions?.end_date ? `${b.exhibitions.start_date} إلى ${b.exhibitions.end_date}` : undefined,
       booth_number: b.booths?.booth_number || 'B1',
+      booth_size_sqm: b.booths?.size_sqm ? Number(b.booths.size_sqm) : undefined,
+      booth_price: b.booths?.price ? Number(b.booths.price) : undefined,
       organization_name: b.organization_name || b.contact_name,
       contact_name: b.contact_name,
       contact_phone: b.contact_phone,
+      contact_email: b.contact_email || undefined,
       total_amount: Number(b.total_amount),
       currency: b.currency,
       status: b.status,
+      payment_status: b.status === 'confirmed' ? 'paid' : (b.status === 'pending' ? 'pending' : 'unpaid'),
       created_at: b.created_at
     }))
   } catch (e) {
     console.error('Error getting organizer bookings:', e)
+    return []
+  }
+}
+
+/**
+ * Update a booking's status (Accept / Reject) with atomic validation and ownership checks
+ */
+export async function updateBookingStatus(
+  bookingId: string, 
+  newStatus: 'confirmed' | 'rejected'
+) {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'يجب تسجيل الدخول كمنظم أولاً' }
+    }
+
+    // 1. Fetch booking record to verify exhibition ownership
+    const { data: booking, error: fetchErr } = await supabase
+      .from('bookings')
+      .select('id, booth_id, exhibition_id, booking_reference, status, exhibitor_id')
+      .eq('id', bookingId)
+      .maybeSingle()
+
+    if (fetchErr || !booking) {
+      return { success: false, error: 'طلب الحجز غير موجود' }
+    }
+
+    // 2. Strict ownership verification
+    const isManager = await isUserExhibitionManager(user.id, user.email, booking.exhibition_id)
+    if (!isManager) {
+      return { success: false, error: 'ليس لديك صلاحية لإدارة حجوزات هذا المعرض' }
+    }
+
+    // 3. If confirming, ensure no conflict exists for this booth
+    if (newStatus === 'confirmed') {
+      const { data: conflict } = await supabase
+        .from('bookings')
+        .select('id, booking_reference')
+        .eq('booth_id', booking.booth_id)
+        .eq('status', 'confirmed')
+        .neq('id', bookingId)
+        .maybeSingle()
+
+      if (conflict) {
+        return { 
+          success: false, 
+          error: `عذراً! يوجد حجز مؤكد بالفعل لهذا البوث برقم مرجعي (${conflict.booking_reference}). لا يمكن تأكيد حجزين متعارضين.` 
+        }
+      }
+    }
+
+    // 4. Update booking status
+    const { error: updateErr } = await supabase
+      .from('bookings')
+      .update({ status: newStatus, updated_at: new Date().toISOString() })
+      .eq('id', bookingId)
+
+    if (updateErr) {
+      return { success: false, error: updateErr.message || 'فشل تحديث حالة الحجز' }
+    }
+
+    // 5. Send notification to exhibitor
+    if (booking.exhibitor_id) {
+      const notifMessage = newStatus === 'confirmed'
+        ? `تهانينا! تم تأكيد طلب حجز البوث ذو الرقم المرجعي (${booking.booking_reference}) من قبل منظم المعرض.`
+        : `نأسف لإبلاغك، تم رفض طلب حجز البوث ذو الرقم المرجعي (${booking.booking_reference}) من قبل منظم المعرض.`
+
+      try {
+        await supabase.from('notifications').insert({
+          user_id: booking.exhibitor_id,
+          title: newStatus === 'confirmed' ? 'تم تأكيد طلب الحجز' : 'تم رفض طلب الحجز',
+          message: notifMessage,
+          type: newStatus === 'confirmed' ? 'success' : 'error'
+        })
+      } catch (notifErr) {
+        console.warn('Notification insert notice:', notifErr)
+      }
+    }
+
+    revalidatePath('/dashboard/organizer')
+    revalidatePath('/dashboard/exhibitor')
+    revalidatePath(`/explore/${booking.exhibition_id}`)
+
+    return { success: true }
+  } catch (err: any) {
+    return { success: false, error: err.message || 'حدث خطأ غير متوقع أثناء تحديث الحجز' }
+  }
+}
+
+/**
+ * Fetch all booths belonging to all exhibitions owned by the authenticated organizer
+ */
+export async function getOrganizerBooths(): Promise<OrganizerBoothRecord[]> {
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+
+    // Fetch user's organization IDs
+    const { data: members } = await supabase
+      .from('organization_members')
+      .select('organization_id')
+      .eq('user_id', user.id)
+
+    const orgIds: string[] = members?.map(m => m.organization_id).filter(Boolean) || []
+
+    if (user.email) {
+      const { data: emailOrgs } = await supabase
+        .from('organizations')
+        .select('id')
+        .eq('contact_email', user.email)
+
+      if (emailOrgs) {
+        emailOrgs.forEach(o => {
+          if (o.id && !orgIds.includes(o.id)) {
+            orgIds.push(o.id)
+          }
+        })
+      }
+    }
+
+    if (orgIds.length === 0) return []
+
+    // Fetch organizer exhibitions
+    const { data: myExhibitions } = await supabase
+      .from('exhibitions')
+      .select('id, title')
+      .in('organization_id', orgIds)
+
+    if (!myExhibitions || myExhibitions.length === 0) return []
+    const exhMap = new Map(myExhibitions.map(e => [e.id, e.title]))
+    const myExhIds = myExhibitions.map(e => e.id)
+
+    // Fetch all booths
+    const { data: booths, error: boothErr } = await supabase
+      .from('booths')
+      .select('*')
+      .in('exhibition_id', myExhIds)
+      .order('booth_number', { ascending: true })
+
+    if (boothErr || !booths) return []
+
+    // Fetch active bookings for these exhibitions
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('id, booth_id, booking_reference, contact_name, contact_phone, organization_name, status, total_amount, created_at')
+      .in('exhibition_id', myExhIds)
+      .in('status', ['pending', 'confirmed'])
+
+    const bookingByBoothId = new Map<string, any>()
+    bookings?.forEach(b => {
+      // Prioritize confirmed over pending if multiple
+      const existing = bookingByBoothId.get(b.booth_id)
+      if (!existing || b.status === 'confirmed') {
+        bookingByBoothId.set(b.booth_id, b)
+      }
+    })
+
+    return booths.map(b => {
+      const activeBooking = bookingByBoothId.get(b.id)
+      let status: 'available' | 'pending' | 'booked' | 'unavailable' = 'available'
+
+      if (b.operational_status !== 'operational') {
+        status = 'unavailable'
+      } else if (activeBooking) {
+        status = activeBooking.status === 'confirmed' ? 'booked' : 'pending'
+      }
+
+      return {
+        id: b.id,
+        booth_number: b.booth_number,
+        exhibition_id: b.exhibition_id,
+        exhibition_title: exhMap.get(b.exhibition_id) || 'معرض',
+        size_sqm: Number(b.size_sqm),
+        price: Number(b.price),
+        currency: b.currency || 'SAR',
+        operational_status: b.operational_status || 'operational',
+        status,
+        booking: activeBooking ? {
+          id: activeBooking.id,
+          booking_reference: activeBooking.booking_reference,
+          contact_name: activeBooking.contact_name,
+          contact_phone: activeBooking.contact_phone,
+          organization_name: activeBooking.organization_name,
+          status: activeBooking.status,
+          total_amount: Number(activeBooking.total_amount),
+          created_at: activeBooking.created_at
+        } : undefined
+      }
+    })
+  } catch (err) {
+    console.error('Error fetching organizer booths:', err)
     return []
   }
 }
