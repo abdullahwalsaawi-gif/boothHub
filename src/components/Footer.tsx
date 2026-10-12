@@ -170,7 +170,7 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#how-it-works" className="text-[#D5E2F5] hover:text-white flex items-center gap-2 group transition-colors duration-200">
+                  <Link href="/how-it-works" className="text-[#D5E2F5] hover:text-white flex items-center gap-2 group transition-colors duration-200">
                     <ChevronLeft size={14} className="text-[#1685FF] transform group-hover:-translate-x-1 transition-transform duration-200 shrink-0" />
                     <span>كيف تعمل المنصة</span>
                   </Link>
@@ -182,7 +182,7 @@ export default function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#about" className="text-[#D5E2F5] hover:text-white flex items-center gap-2 group transition-colors duration-200">
+                  <Link href="/about" className="text-[#D5E2F5] hover:text-white flex items-center gap-2 group transition-colors duration-200">
                     <ChevronLeft size={14} className="text-[#1685FF] transform group-hover:-translate-x-1 transition-transform duration-200 shrink-0" />
                     <span>من نحن</span>
                   </Link>
