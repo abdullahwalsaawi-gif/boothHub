@@ -1,15 +1,24 @@
 "use client"
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Menu, X, Bell, User, LogOut, Settings } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { signOut } from '@/app/actions/auth';
 
 export default function Navbar() {
+  const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+
+  const navLinks = [
+    { href: '/', label: 'الرئيسية', isActive: pathname === '/' },
+    { href: '/explore', label: 'استكشاف المعارض', isActive: pathname === '/explore' || pathname.startsWith('/explore/') },
+    { href: '/how-it-works', label: 'كيف تعمل المنصة؟', isActive: pathname === '/how-it-works' || pathname.startsWith('/how-it-works/') },
+    { href: '/about', label: 'من نحن', isActive: pathname === '/about' || pathname.startsWith('/about/') },
+  ];
 
   useEffect(() => {
     const supabase = createClient();
@@ -68,19 +77,23 @@ export default function Navbar() {
 
         {/* Center: Navigation Links */}
         <nav className="hidden lg:flex items-center gap-8 text-[15px] font-medium">
-          <Link href="/" className="relative text-[#082B78] font-bold py-2 transition-colors">
-            الرئيسية
-            <span className="absolute bottom-0 right-0 left-0 h-[2.5px] bg-[#FF6257] rounded-full"></span>
-          </Link>
-          <Link href="/explore" className="text-[#65789A] hover:text-[#086BEE] py-2 transition-colors">
-            استكشاف المعارض
-          </Link>
-          <Link href="/how-it-works" className="text-[#65789A] hover:text-[#086BEE] py-2 transition-colors">
-            كيف تعمل المنصة؟
-          </Link>
-          <Link href="/about" className="text-[#65789A] hover:text-[#086BEE] py-2 transition-colors">
-            من نحن
-          </Link>
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              aria-current={link.isActive ? 'page' : undefined}
+              className={`relative py-2 transition-colors ${
+                link.isActive
+                  ? 'text-[#082B78] font-bold'
+                  : 'text-[#65789A] hover:text-[#086BEE] font-medium'
+              }`}
+            >
+              {link.label}
+              {link.isActive && (
+                <span className="absolute bottom-0 right-0 left-0 h-[2.5px] bg-[#FF6257] rounded-full"></span>
+              )}
+            </Link>
+          ))}
         </nav>
 
         {/* Left side (RTL): Auth / Profile & Notifications */}
@@ -162,10 +175,21 @@ export default function Navbar() {
       {/* Mobile Drawer */}
       {isMenuOpen && (
         <div className="lg:hidden border-t border-[#E2E8F0] bg-white px-5 py-6 flex flex-col gap-3 shadow-lg">
-          <Link href="/" className="px-3 py-2 text-[#082B78] font-bold bg-[#F4F8FF] rounded-xl">الرئيسية</Link>
-          <Link href="/explore" className="px-3 py-2 text-[#65789A] hover:text-[#086BEE] rounded-xl">استكشاف المعارض</Link>
-          <Link href="/how-it-works" className="px-3 py-2 text-[#65789A] hover:text-[#086BEE] rounded-xl">كيف تعمل المنصة؟</Link>
-          <Link href="/about" className="px-3 py-2 text-[#65789A] hover:text-[#086BEE] rounded-xl">من نحن</Link>
+          {navLinks.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setIsMenuOpen(false)}
+              aria-current={link.isActive ? 'page' : undefined}
+              className={`px-3 py-2 rounded-xl transition-colors ${
+                link.isActive
+                  ? 'text-[#082B78] font-bold bg-[#F4F8FF]'
+                  : 'text-[#65789A] hover:text-[#086BEE]'
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
           
           <div className="h-px w-full bg-[#E2E8F0] my-2"></div>
           
