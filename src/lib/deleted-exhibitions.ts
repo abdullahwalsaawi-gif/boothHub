@@ -7,6 +7,7 @@ const INITIAL_DELETED_IDS = [
   '7344b7b5-38b1-42fc-94cc-b4c0045df35e', // "o"
   '7a5fa51b-4797-4565-a3ab-dc97f4ff9756', // "h"
   '14ea5a76-abbb-4014-a516-a604cbba0daa', // "معرض التمور"
+  'db07f0eb-c002-4ac9-8785-85d4b0df5246', // "j"
 ]
 
 const DATA_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'deleted_exhibitions.json')

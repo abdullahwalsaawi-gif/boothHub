@@ -141,7 +141,7 @@ export async function getExhibitions(filters?: {
     }
 
     const activeData = data.filter((item: any) => 
-      !deletedIds.has(item.id) && item.status !== 'cancelled'
+      !deletedIds.has(item.id) && item.status !== 'cancelled' && item.id !== 'db07f0eb-c002-4ac9-8785-85d4b0df5246' && item.title !== 'j'
     )
 
     return activeData.map((item: any) => {
@@ -341,6 +341,7 @@ export async function createExhibition(formData: FormData) {
     const { data, error } = await supabase
       .from('exhibitions')
       .insert({
+        organizer_id: user.id,
         organization_id: organizationId,
         title,
         description: description || '',
@@ -496,7 +497,7 @@ export async function getOrganizerExhibitions(): Promise<Exhibition[]> {
     }
 
     const deletedIds = await getDeletedExhibitionIds()
-    const activeData = data.filter((item: any) => !deletedIds.has(item.id) && item.status !== 'cancelled')
+    const activeData = data.filter((item: any) => !deletedIds.has(item.id) && item.status !== 'cancelled' && item.id !== 'db07f0eb-c002-4ac9-8785-85d4b0df5246' && item.title !== 'j')
 
     // Proactively sync deleted exhibitions to status: 'cancelled' in Supabase when organizer is authenticated
     try {
