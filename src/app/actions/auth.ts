@@ -272,6 +272,9 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
     if (error.message.includes('Password')) {
       return { success: false, error: 'كلمة المرور ضعيفة، يرجى اختيار كلمة مرور أقوى' }
     }
+    if (error.message.includes('Invalid path') || error.message.includes('PGRST125')) {
+      return { success: false, error: 'تعذر الاتصال بخدمة المصادقة، يرجى التأكد من إعدادات الربط' }
+    }
     return { success: false, error: error.message || 'حدث خطأ أثناء إنشاء الحساب' }
   }
 
@@ -350,6 +353,12 @@ export async function signIn(formData: FormData): Promise<AuthActionResult> {
     }
     if (error.message.includes('Email not confirmed')) {
       return { success: false, error: 'يرجى تأكيد بريدك الإلكتروني أولاً قبل تسجيل الدخول' }
+    }
+    if (error.message.includes('Invalid path') || error.message.includes('PGRST125')) {
+      return { success: false, error: 'تعذر الاتصال بخدمة المصادقة، يرجى التأكد من إعدادات الربط' }
+    }
+    if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      return { success: false, error: 'فشل الاتصال بالخادم، يرجى التحقق من اتصال الإنترنت وإعادة المحاولة' }
     }
     return { success: false, error: error.message || 'فشل تسجيل الدخول' }
   }
