@@ -394,23 +394,102 @@ export async function signOut(): Promise<void> {
 }
 
 export async function resetPasswordForEmail(email: string): Promise<AuthActionResult> {
-  if (!email) {
-    return { success: false, error: 'يرجى إدخال البريد الإلكتروني' }
+  if (!email || !email.includes('@')) {
+    return { success: false, error: 'يرجى إدخال بريد إلكتروني صحيح' }
   }
 
   const supabase = await createClient()
-  const resetRedirectTo = await getAuthRedirectUrl('/reset-password')
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+  const resetRedirectTo = await getAuthRedirectUrl('/auth/callback?next=/reset-password')
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo: resetRedirectTo,
   })
 
   if (error) {
-    return { success: false, error: error.message }
+    console.error('Reset password error:', error.message)
+    if (error.message.includes('rate limit') || error.message.includes('security purposes') || error.message.includes('seconds')) {
+      return { success: false, error: 'يرجى الانتظار دقيقة واحدة قبل محاولة طلب رابط جديد' }
+    }
+    return { success: false, error: error.message || 'فشل إرسال رابط استعادة كلمة المرور' }
   }
 
   return {
     success: true,
-    message: 'إذا كان البريد مسجلاً، فقد تم إرسال رابط استعادة كلمة المرور.',
+    message: 'إذا كان البريد مسجلاً في المنصة، فستصلك رسالة تحتوي على رابط لإعادة تعيين كلمة المرور.',
+  }
+}
+
+export async function checkResetSession(): Promise<{ valid: boolean; email?: string }> {
+  try {
+    const supabase = await createClient()
+    const { data: { user }, error } = await supabase.auth.getUser()
+    if (error || !user) {
+      return { valid: false }
+    }
+    return { valid: true, email: user.email }
+  } catch {
+    return { valid: false }
+  }
+}
+
+export async function exchangeRecoveryCode(code: string): Promise<AuthActionResult> {
+  if (!code) return { success: false, error: 'رمز التحقق مفقود' }
+  const supabase = await createClient()
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+  if (error || !data.user) {
+    return { 
+      success: false, 
+      error: 'انتهت صلاحية رمز الاستعادة أو تم استخدامه مسبقاً، يرجى طلب رابط جديد.' 
+    }
+  }
+  return { success: true }
+}
+
+export async function updatePassword(formData: FormData): Promise<AuthActionResult> {
+  const password = formData.get('password') as string
+  const confirmPassword = formData.get('confirmPassword') as string
+
+  if (!password || !confirmPassword) {
+    return { success: false, error: 'يرجى إدخال كلمة المرور وتأكيدها' }
+  }
+
+  if (password.length < 6) {
+    return { success: false, error: 'يجب أن تتكون كلمة المرور من 6 أحرف على الأقل' }
+  }
+
+  if (password !== confirmPassword) {
+    return { success: false, error: 'كلمتا المرور غير متطابقتين' }
+  }
+
+  const supabase = await createClient()
+
+  // Verify that the user currently has an active recovery session
+  const { data: { user }, error: userError } = await supabase.auth.getUser()
+
+  if (userError || !user) {
+    return { 
+      success: false, 
+      error: 'انتهت صلاحية جلسة الاستعادة أو الرابط غير صالح. يرجى طلب رابط جديد لإعادة تعيين كلمة المرور.' 
+    }
+  }
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password: password,
+  })
+
+  if (updateError) {
+    console.error('Update password error:', updateError.message)
+    if (updateError.message.includes('same password') || updateError.message.includes('different from the old')) {
+      return { success: false, error: 'يرجى اختيار كلمة مرور جديدة تختلف عن السابقة' }
+    }
+    return { success: false, error: updateError.message || 'حدث خطأ أثناء تحديث كلمة المرور' }
+  }
+
+  // Sign out the temporary recovery session so user explicitly logs in with the new credentials
+  await supabase.auth.signOut()
+
+  return {
+    success: true,
+    redirectUrl: '/login?message=' + encodeURIComponent('تم تغيير كلمة المرور بنجاح، يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة'),
   }
 }
 

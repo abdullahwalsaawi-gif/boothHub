@@ -27,7 +27,10 @@ export async function handleAuthConfirmation(request: Request) {
     } else if (msg.includes('invalid') || msg.includes('access_denied')) {
       msg = 'رابط التحقق غير صالح أو تم استخدامه مسبقاً.'
     }
-    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`)
+    const errorRedirect = (next === '/reset-password' || type === 'recovery')
+      ? `${origin}/forgot-password?error=${encodeURIComponent(msg)}`
+      : `${origin}/login?error=${encodeURIComponent(msg)}`
+    return NextResponse.redirect(errorRedirect)
   }
 
   const supabase = await createClient()
@@ -35,6 +38,7 @@ export async function handleAuthConfirmation(request: Request) {
   // 2. Token Hash flow: Cross-device verification without PKCE code_verifier dependency
   if (token_hash) {
     const otpType: EmailOtpType = type || 'email'
+    const isRecovery = otpType === 'recovery' || next === '/reset-password'
     const { data, error: verifyError } = await supabase.auth.verifyOtp({
       type: otpType,
       token_hash,
@@ -44,36 +48,51 @@ export async function handleAuthConfirmation(request: Request) {
       console.error('verifyOtp error:', verifyError.message)
       let msg = verifyError.message
       if (msg.includes('expired') || msg.includes('Token has expired')) {
-        msg = 'انتهت صلاحية رابط التحقق، يرجى طلب رابط تفعيل جديد.'
+        msg = isRecovery
+          ? 'انتهت صلاحية رابط استعادة كلمة المرور، يرجى طلب رابط جديد.'
+          : 'انتهت صلاحية رابط التحقق، يرجى طلب رابط تفعيل جديد.'
       } else if (msg.includes('invalid') || msg.includes('Token is invalid')) {
-        msg = 'رابط التحقق غير صالح أو تم استخدامه مسبقاً. يمكنك تسجيل الدخول إذا كان حسابك مفعلاً.'
+        msg = isRecovery
+          ? 'رابط استعادة كلمة المرور غير صالح أو تم استخدامه مسبقاً. يرجى طلب رابط جديد.'
+          : 'رابط التحقق غير صالح أو تم استخدامه مسبقاً. يمكنك تسجيل الدخول إذا كان حسابك مفعلاً.'
       }
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`)
+      const errorRedirect = isRecovery
+        ? `${origin}/forgot-password?error=${encodeURIComponent(msg)}`
+        : `${origin}/login?error=${encodeURIComponent(msg)}`
+      return NextResponse.redirect(errorRedirect)
     }
 
     if (data?.user) {
-      const destination = await resolveUserDestination(supabase, data.user, next)
+      const destination = await resolveUserDestination(supabase, data.user, next, isRecovery)
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }
 
   // 3. PKCE Code flow: Fallback for OAuth and same-device code verifier links
   if (code) {
+    const isRecovery = next === '/reset-password'
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
       console.error('exchangeCodeForSession error:', exchangeError.message)
       let msg = exchangeError.message
       if (msg.includes('code verifier') || msg.includes('storage') || msg.includes('PKCE')) {
-        msg = 'تم فتح الرابط من جهاز مختلف عن جهاز التسجيل. يرجى تسجيل الدخول مباشرة ببريدك وكلمة المرور، أو طلب رابط تفعيل جديد.'
+        msg = isRecovery
+          ? 'تم فتح الرابط من جهاز مختلف عن جهاز الطلب. يرجى طلب رابط استعادة جديد من جهازك الحالي.'
+          : 'تم فتح الرابط من جهاز مختلف عن جهاز التسجيل. يرجى تسجيل الدخول مباشرة ببريدك وكلمة المرور، أو طلب رابط تفعيل جديد.'
       } else if (msg.includes('expired')) {
-        msg = 'انتهت صلاحية رمز التحقق، يرجى طلب رابط تفعيل جديد.'
+        msg = isRecovery
+          ? 'انتهت صلاحية رابط استعادة كلمة المرور، يرجى طلب رابط جديد.'
+          : 'انتهت صلاحية رمز التحقق، يرجى طلب رابط تفعيل جديد.'
       }
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(msg)}`)
+      const errorRedirect = isRecovery
+        ? `${origin}/forgot-password?error=${encodeURIComponent(msg)}`
+        : `${origin}/login?error=${encodeURIComponent(msg)}`
+      return NextResponse.redirect(errorRedirect)
     }
 
     if (data?.user) {
-      const destination = await resolveUserDestination(supabase, data.user, next)
+      const destination = await resolveUserDestination(supabase, data.user, next, isRecovery)
       return NextResponse.redirect(`${origin}${destination}`)
     }
   }
@@ -82,7 +101,8 @@ export async function handleAuthConfirmation(request: Request) {
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const destination = await resolveUserDestination(supabase, user, next)
+      const isRecovery = next === '/reset-password'
+      const destination = await resolveUserDestination(supabase, user, next, isRecovery)
       return NextResponse.redirect(`${origin}${destination}`)
     }
   } catch {
@@ -94,7 +114,16 @@ export async function handleAuthConfirmation(request: Request) {
 
 export const handleAuthCallback = handleAuthConfirmation
 
-async function resolveUserDestination(supabase: any, user: any, nextParam?: string | null): Promise<string> {
+async function resolveUserDestination(
+  supabase: any, 
+  user: any, 
+  nextParam?: string | null, 
+  isRecovery?: boolean
+): Promise<string> {
+  if (isRecovery) {
+    return '/reset-password'
+  }
+
   if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//')) {
     return nextParam
   }
