@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { formatSaudiPhoneNumber } from '@/lib/utils'
+import { getAuthRedirectUrl } from '@/lib/site-url'
 
 export type AuthActionResult = {
   success: boolean
@@ -250,11 +251,13 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
 
   const formattedPhone = formatSaudiPhoneNumber(phone)
   const supabase = await createClient()
+  const emailRedirectTo = await getAuthRedirectUrl('/auth/callback')
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
+      emailRedirectTo,
       data: {
         full_name: fullName,
         phone: formattedPhone,
@@ -396,8 +399,9 @@ export async function resetPasswordForEmail(email: string): Promise<AuthActionRe
   }
 
   const supabase = await createClient()
+  const resetRedirectTo = await getAuthRedirectUrl('/reset-password')
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reset-password`,
+    redirectTo: resetRedirectTo,
   })
 
   if (error) {

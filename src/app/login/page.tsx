@@ -1,7 +1,7 @@
 "use client"
 import Link from 'next/link';
-import { Eye, EyeOff, ArrowRight, Loader2, AlertCircle, Mail, Lock, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { Eye, EyeOff, ArrowRight, Loader2, AlertCircle, Mail, Lock, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signIn } from '@/app/actions/auth';
 
@@ -14,6 +14,27 @@ export default function Login() {
   // UI Feedback States
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const errorParam = params.get('error');
+      const messageParam = params.get('message');
+
+      if (errorParam) {
+        if (errorParam.includes('expired') || errorParam.includes('otp_expired')) {
+          setErrorMessage('انتهت صلاحية رابط التحقق، يرجى طلب رابط جديد أو تسجيل الدخول.');
+        } else if (errorParam.includes('access_denied') || errorParam.includes('invalid') || errorParam.includes('failed')) {
+          setErrorMessage('رابط التحقق غير صالح أو تم استخدامه مسبقاً.');
+        } else {
+          setErrorMessage(decodeURIComponent(errorParam));
+        }
+      } else if (messageParam) {
+        setSuccessMessage(decodeURIComponent(messageParam));
+      }
+    }
+  }, []);
 
   // Email Password Login
   const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -97,6 +118,13 @@ export default function Login() {
             <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-3 text-xs leading-relaxed">
               <AlertCircle size={18} className="shrink-0 text-red-500 mt-0.5" />
               <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {successMessage && (
+            <div className="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 flex items-start gap-3 text-xs leading-relaxed">
+              <CheckCircle2 size={18} className="shrink-0 text-emerald-500 mt-0.5" />
+              <span>{successMessage}</span>
             </div>
           )}
 
