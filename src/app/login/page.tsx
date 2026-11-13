@@ -3,16 +3,18 @@ import Link from 'next/link';
 import { Eye, EyeOff, ArrowRight, Loader2, AlertCircle, Mail, Lock, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from '@/app/actions/auth';
+import { signIn, resendConfirmationEmail } from '@/app/actions/auth';
 
 export default function Login() {
   const router = useRouter();
   
   // Password State
   const [showPassword, setShowPassword] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
   
   // UI Feedback States
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
@@ -35,6 +37,28 @@ export default function Login() {
       }
     }
   }, []);
+
+  // Resend confirmation email
+  const handleResend = async () => {
+    if (!emailValue || !emailValue.includes('@')) {
+      setErrorMessage('يرجى إدخال بريدك الإلكتروني في الحقل أدناه أولاً لإعادة إرسال رابط التفعيل');
+      return;
+    }
+    setIsResending(true);
+    try {
+      const res = await resendConfirmationEmail(emailValue);
+      if (res.success) {
+        setErrorMessage(null);
+        setSuccessMessage(res.message || 'تم إرسال رابط تأكيد جديد إلى بريدك بنجاح.');
+      } else {
+        setErrorMessage(res.error || 'فشل إرسال رابط التفعيل');
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'حدث خطأ أثناء إعادة إرسال الرابط');
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   // Email Password Login
   const handleEmailSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -115,9 +139,25 @@ export default function Login() {
 
           {/* Feedback Messages */}
           {errorMessage && (
-            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex items-start gap-3 text-xs leading-relaxed">
-              <AlertCircle size={18} className="shrink-0 text-red-500 mt-0.5" />
-              <span>{errorMessage}</span>
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex flex-col gap-2.5 text-xs leading-relaxed">
+              <div className="flex items-start gap-3">
+                <AlertCircle size={18} className="shrink-0 text-red-500 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+              {(errorMessage.includes('تأكيد') || errorMessage.includes('رابط') || errorMessage.includes('رمز') || errorMessage.includes('صلاحية')) && (
+                <div className="pt-2 border-t border-red-200/60 flex items-center justify-between">
+                  <span className="text-[11px] text-red-600">لم تصلك الرسالة أو انتهت صلاحيتها؟</span>
+                  <button
+                    type="button"
+                    onClick={handleResend}
+                    disabled={isResending}
+                    className="text-xs font-bold text-[#0868E9] hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    {isResending && <Loader2 size={13} className="animate-spin" />}
+                    <span>إعادة إرسال رابط التفعيل</span>
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
@@ -136,6 +176,8 @@ export default function Login() {
                 <input 
                   type="email" 
                   name="email"
+                  value={emailValue}
+                  onChange={(e) => setEmailValue(e.target.value)}
                   required
                   placeholder="name@example.com"
                   className="w-full pl-4 pr-10 py-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl text-sm focus:outline-none focus:border-[#0868E9] focus:ring-1 focus:ring-[#0868E9] transition-all text-left"

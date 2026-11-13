@@ -251,7 +251,7 @@ export async function signUp(formData: FormData): Promise<AuthActionResult> {
 
   const formattedPhone = formatSaudiPhoneNumber(phone)
   const supabase = await createClient()
-  const emailRedirectTo = await getAuthRedirectUrl('/auth/callback')
+  const emailRedirectTo = await getAuthRedirectUrl('/auth/confirm')
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -413,3 +413,34 @@ export async function resetPasswordForEmail(email: string): Promise<AuthActionRe
     message: 'إذا كان البريد مسجلاً، فقد تم إرسال رابط استعادة كلمة المرور.',
   }
 }
+
+export async function resendConfirmationEmail(email: string): Promise<AuthActionResult> {
+  if (!email || !email.includes('@')) {
+    return { success: false, error: 'يرجى إدخال بريد إلكتروني صحيح' }
+  }
+
+  const supabase = await createClient()
+  const emailRedirectTo = await getAuthRedirectUrl('/auth/confirm')
+
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.trim(),
+    options: {
+      emailRedirectTo,
+    },
+  })
+
+  if (error) {
+    console.error('Resend verification email error:', error.message)
+    if (error.message.includes('rate limit') || error.message.includes('security purposes') || error.message.includes('seconds')) {
+      return { success: false, error: 'يرجى الانتظار دقيقة واحدة قبل محاولة إعادة الإرسال مرة أخرى' }
+    }
+    return { success: false, error: error.message || 'فشل إرسال رابط التفعيل' }
+  }
+
+  return {
+    success: true,
+    message: 'تم إرسال رابط تأكيد جديد إلى بريدك الإلكتروني بنجاح. يرجى مراجعة بريدك.',
+  }
+}
+
