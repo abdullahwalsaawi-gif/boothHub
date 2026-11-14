@@ -62,12 +62,18 @@ export default function Floorplan({
   const handleReset = () => setScale(1);
 
   const getStatusColor = (status: string, isSelected: boolean) => {
-    if (isSelected) return 'fill-primary stroke-primary-dark stroke-[3] filter drop-shadow(0 4px 6px rgba(8,104,233,0.3))';
+    if (isSelected) return 'fill-[#0868E9] stroke-[#102E70] stroke-[3] filter drop-shadow(0 4px 6px rgba(8,104,233,0.3))';
     switch (status) {
-      case 'available': return 'fill-green-100 stroke-green-500 hover:fill-green-200 cursor-pointer transition-all';
-      case 'booked': return 'fill-red-100 stroke-coral cursor-not-allowed opacity-90';
-      case 'unavailable': return 'fill-gray-200 stroke-gray-400 cursor-not-allowed';
-      default: return 'fill-white stroke-gray-300';
+      case 'available': 
+        return 'fill-green-100 stroke-green-500 hover:fill-green-200 cursor-pointer transition-all';
+      case 'pending': 
+        return 'fill-amber-100 stroke-amber-500 hover:fill-amber-200 cursor-pointer transition-all';
+      case 'booked': 
+        return 'fill-red-100 stroke-red-500 hover:fill-red-200 cursor-pointer transition-all';
+      case 'unavailable': 
+        return 'fill-slate-100 stroke-slate-400 hover:fill-slate-200 cursor-pointer transition-all';
+      default: 
+        return 'fill-white stroke-gray-300';
     }
   };
 
@@ -114,9 +120,9 @@ export default function Floorplan({
           boothNumber: selectedBooth.number,
           price: selectedBooth.price
         });
-        // Update local status of the booked booth
-        setBooths(prev => prev.map(b => b.id === selectedBooth.id ? { ...b, status: 'booked' } : b));
-        setSelectedBooth(prev => prev ? { ...prev, status: 'booked' } : null);
+        // Update local status of the booked booth immediately to pending review
+        setBooths(prev => prev.map(b => b.id === selectedBooth.id ? { ...b, status: 'pending' } : b));
+        setSelectedBooth(prev => prev ? { ...prev, status: 'pending' } : null);
       }
     } catch (err: any) {
       setBookingError(err.message || 'حدث خطأ غير متوقع');
@@ -227,9 +233,7 @@ export default function Floorplan({
                         <g 
                           key={booth.id} 
                           onClick={() => {
-                            if (isOrganizer || booth.status === 'available') {
-                              setSelectedBooth(booth);
-                            }
+                            setSelectedBooth(booth);
                           }}
                           className="cursor-pointer"
                         >
@@ -246,7 +250,17 @@ export default function Floorplan({
                             y={by + bh / 2 - 4}
                             fontSize={Math.max(10, Math.min(13, bw / 4))}
                             fontWeight="bold"
-                            fill={isSelected ? '#ffffff' : (booth.status === 'available' ? '#15803D' : (booth.status === 'booked' ? '#DC2626' : '#64748B'))}
+                            fill={
+                              isSelected 
+                                ? '#ffffff' 
+                                : booth.status === 'available' 
+                                  ? '#15803D' 
+                                  : booth.status === 'pending'
+                                    ? '#B45309'
+                                    : booth.status === 'booked' 
+                                      ? '#DC2626' 
+                                      : '#64748B'
+                            }
                             textAnchor="middle"
                             dominantBaseline="middle"
                             className="pointer-events-none"
@@ -281,15 +295,19 @@ export default function Floorplan({
             متاح للحجز
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-4 h-4 bg-red-100 border border-coral rounded-sm inline-block"></span>
+            <span className="w-4 h-4 bg-amber-100 border border-amber-500 rounded-sm inline-block"></span>
+            قيد المراجعة
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-4 h-4 bg-red-100 border border-red-500 rounded-sm inline-block"></span>
             محجوز
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-4 h-4 bg-gray-200 border border-gray-400 rounded-sm inline-block"></span>
+            <span className="w-4 h-4 bg-slate-100 border border-slate-400 rounded-sm inline-block"></span>
             تحت الصيانة
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-4 h-4 bg-primary rounded-sm inline-block"></span>
+            <span className="w-4 h-4 bg-[#0868E9] rounded-sm inline-block"></span>
             محدد حالياً
           </div>
         </div>
@@ -306,9 +324,21 @@ export default function Floorplan({
                   <h3 className="font-bold text-2xl text-primary-dark">بوث {selectedBooth.number}</h3>
                 </div>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  selectedBooth.status === 'available' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  selectedBooth.status === 'available'
+                    ? 'bg-green-100 text-green-700'
+                    : selectedBooth.status === 'pending'
+                      ? 'bg-amber-100 text-amber-700'
+                      : selectedBooth.status === 'booked'
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-slate-100 text-slate-700'
                 }`}>
-                  {selectedBooth.status === 'available' ? 'متاح للحجز' : 'محجوز'}
+                  {selectedBooth.status === 'available' 
+                    ? 'متاح للحجز' 
+                    : selectedBooth.status === 'pending'
+                      ? 'قيد المراجعة'
+                      : selectedBooth.status === 'booked'
+                        ? 'محجوز'
+                        : 'تحت الصيانة'}
                 </span>
               </div>
               
@@ -322,8 +352,24 @@ export default function Floorplan({
                   <span className="font-bold text-primary text-lg">{selectedBooth.price.toLocaleString()} ريال</span>
                 </div>
                 <div className="flex justify-between pb-2 border-b border-border/60">
-                  <span className="text-foreground">حالة التأكيد</span>
-                  <span className="font-medium text-gray-700">فوري ومؤكد</span>
+                  <span className="text-foreground">حالة الحجز</span>
+                  <span className={`font-medium ${
+                    selectedBooth.status === 'available' 
+                      ? 'text-green-600' 
+                      : selectedBooth.status === 'pending'
+                        ? 'text-amber-600 font-bold'
+                        : selectedBooth.status === 'booked'
+                          ? 'text-red-600 font-bold'
+                          : 'text-slate-500'
+                  }`}>
+                    {selectedBooth.status === 'available' 
+                      ? 'متاح للحجز الفوري' 
+                      : selectedBooth.status === 'pending'
+                        ? 'طلب حجز قيد مراجعة المنظم'
+                        : selectedBooth.status === 'booked'
+                          ? 'حجز مؤكد وغير متاح'
+                          : 'غير متاح (تحت الصيانة)'}
+                  </span>
                 </div>
               </div>
 
@@ -370,9 +416,17 @@ export default function Floorplan({
                 >
                   احجز هذا البوث الآن
                 </button>
+              ) : selectedBooth.status === 'pending' ? (
+                <div className="p-3 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-center text-xs font-semibold">
+                  يوجد طلب حجز قيد المراجعة لهذا البوث حالياً
+                </div>
+              ) : selectedBooth.status === 'booked' ? (
+                <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-center text-xs font-semibold">
+                  هذا البوث محجوز ومؤكد ولا يمكن حجزه
+                </div>
               ) : (
-                <div className="p-3 bg-red-50 text-red-600 rounded-xl text-center text-xs font-medium">
-                  هذا البوث محجوز ولا يمكن إتمام الحجز عليه
+                <div className="p-3 bg-slate-100 border border-slate-200 text-slate-600 rounded-xl text-center text-xs font-semibold">
+                  هذا البوث غير متاح حالياً (تحت الصيانة)
                 </div>
               )}
             </div>

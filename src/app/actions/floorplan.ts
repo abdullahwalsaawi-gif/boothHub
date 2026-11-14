@@ -235,7 +235,15 @@ export async function saveExhibitionFloorplan(input: SaveFloorplanInput) {
 /**
  * Load full exhibition floor plan editor data
  */
-export async function getExhibitionFloorplanData(exhibitionId: string) {
+export type FloorplanDataResponse = {
+  exhibition: any
+  hall: HallDimensions
+  booths: BoothInput[]
+  bookedBoothIds: string[]
+  bookingStatusMap?: Record<string, 'pending' | 'confirmed'>
+}
+
+export async function getExhibitionFloorplanData(exhibitionId: string): Promise<FloorplanDataResponse | null> {
   try {
     const supabase = await createClient()
 
@@ -269,7 +277,13 @@ export async function getExhibitionFloorplanData(exhibitionId: string) {
       .eq('exhibition_id', exhibitionId)
       .in('status', ['pending', 'confirmed'])
 
-    const bookedMap = new Map((bookings || []).map(b => [b.booth_id, b.status]))
+    const bookingStatusMap: Record<string, 'pending' | 'confirmed'> = {}
+    bookings?.forEach(b => {
+      const existing = bookingStatusMap[b.booth_id]
+      if (!existing || b.status === 'confirmed') {
+        bookingStatusMap[b.booth_id] = b.status as 'pending' | 'confirmed'
+      }
+    })
 
     const hall: HallDimensions = {
       width_m: plan?.width ? Number(plan.width) : 40,
@@ -278,7 +292,6 @@ export async function getExhibitionFloorplanData(exhibitionId: string) {
     }
 
     const mappedBooths: BoothInput[] = (booths || []).map(b => {
-      const isBooked = bookedMap.has(b.id)
       return {
         id: b.id,
         booth_number: b.booth_number,
@@ -290,7 +303,7 @@ export async function getExhibitionFloorplanData(exhibitionId: string) {
         x: Number(b.position_x) || 0,
         y: Number(b.position_y) || 0,
         rotation: Number(b.rotation) || 0,
-        operational_status: isBooked ? 'disabled' : (b.operational_status as any || 'operational')
+        operational_status: (b.operational_status as any) || 'operational'
       }
     })
 
@@ -298,7 +311,8 @@ export async function getExhibitionFloorplanData(exhibitionId: string) {
       exhibition,
       hall,
       booths: mappedBooths,
-      bookedBoothIds: Array.from(bookedMap.keys())
+      bookedBoothIds: Object.keys(bookingStatusMap),
+      bookingStatusMap
     }
   } catch (err) {
     console.error('Error getting floor plan data:', err)

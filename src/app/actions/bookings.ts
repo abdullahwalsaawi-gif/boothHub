@@ -10,7 +10,7 @@ export type BoothData = {
   name?: string
   size_sqm: number
   price: number
-  status: 'available' | 'booked' | 'unavailable'
+  status: 'available' | 'pending' | 'booked' | 'unavailable'
   x: number
   y: number
   width: number
@@ -94,14 +94,21 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
       .eq('exhibition_id', exhibitionId)
       .in('status', ['pending', 'confirmed'])
 
-    const bookedBoothIds = new Set(bookings?.map(b => b.booth_id) || [])
+    // Prioritize confirmed over pending if a booth has multiple records
+    const bookingStatusByBoothId = new Map<string, 'pending' | 'confirmed'>()
+    bookings?.forEach(b => {
+      const existing = bookingStatusByBoothId.get(b.booth_id)
+      if (!existing || b.status === 'confirmed') {
+        bookingStatusByBoothId.set(b.booth_id, b.status as 'pending' | 'confirmed')
+      }
+    })
 
     if (boothError || !booths || booths.length === 0) {
       // Return default visual booths with realistic interactive coordinates
       return [
         { id: 'b-1', number: 'A1', size_sqm: 9, price: 5000, status: 'available', x: 50, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي', 'إنترنت فائق السرعة'], hallWidth: 420, hallHeight: 420 },
         { id: 'b-2', number: 'A2', size_sqm: 9, price: 5000, status: 'booked', x: 120, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
-        { id: 'b-3', number: 'A3', size_sqm: 9, price: 5000, status: 'available', x: 190, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
+        { id: 'b-3', number: 'A3', size_sqm: 9, price: 5000, status: 'pending', x: 190, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
         { id: 'b-4', number: 'A4', size_sqm: 9, price: 5000, status: 'available', x: 260, y: 50, width: 60, height: 60, amenities: ['كهرباء', 'طاولة وكراسي'], hallWidth: 420, hallHeight: 420 },
         { id: 'b-5', number: 'B1', size_sqm: 16, price: 8000, status: 'available', x: 50, y: 150, width: 80, height: 80, amenities: ['كهرباء ثلاثية الفاز', 'شاشة عرض 55 بوصة'], hallWidth: 420, hallHeight: 420 },
         { id: 'b-6', number: 'B2', size_sqm: 16, price: 8000, status: 'unavailable', x: 140, y: 150, width: 80, height: 80, amenities: ['تحت الصيانة'], hallWidth: 420, hallHeight: 420 },
@@ -112,11 +119,13 @@ export async function getExhibitionBooths(exhibitionId: string): Promise<BoothDa
     }
 
     return booths.map(b => {
-      let status: 'available' | 'booked' | 'unavailable' = 'available'
+      let status: 'available' | 'pending' | 'booked' | 'unavailable' = 'available'
+      const bookingStatus = bookingStatusByBoothId.get(b.id)
+
       if (b.operational_status !== 'operational') {
         status = 'unavailable'
-      } else if (bookedBoothIds.has(b.id)) {
-        status = 'booked'
+      } else if (bookingStatus) {
+        status = bookingStatus === 'confirmed' ? 'booked' : 'pending'
       }
 
       return {

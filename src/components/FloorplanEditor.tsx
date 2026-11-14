@@ -13,6 +13,7 @@ interface FloorplanEditorProps {
   initialHall?: HallDimensions
   initialBooths?: BoothInput[]
   bookedBoothIds?: string[]
+  bookingStatusMap?: Record<string, 'pending' | 'confirmed'>
   onSaved?: () => void
   onCancel?: () => void
 }
@@ -89,6 +90,7 @@ export default function FloorplanEditor({
   initialHall = { width_m: 40, height_m: 30, total_area_sqm: 1200 },
   initialBooths = [],
   bookedBoothIds = [],
+  bookingStatusMap = {},
   onSaved,
   onCancel
 }: FloorplanEditorProps) {
@@ -430,17 +432,26 @@ export default function FloorplanEditor({
 
   // Determine booth display status
   const getBoothColor = (b: BoothInput, isSelected: boolean) => {
+    const bookingStatus = b.id ? bookingStatusMap[b.id] : undefined;
     const isBooked = b.id && bookedSet.has(b.id);
+
     if (isSelected) {
       return 'fill-[#0868E9] stroke-[#102E70] stroke-[2.5] filter drop-shadow(0 4px 8px rgba(8,104,233,0.4))';
     }
-    if (isBooked) {
-      return 'fill-[#FEE2E2] stroke-[#EF4444] stroke-2'; // Red: Booked
+    // Confirmed booking: Distinct Red
+    if (bookingStatus === 'confirmed' || (isBooked && !bookingStatus)) {
+      return 'fill-[#FEE2E2] stroke-[#EF4444] stroke-2';
     }
+    // Pending review booking: Warm Orange/Amber
+    if (bookingStatus === 'pending') {
+      return 'fill-[#FEF3C7] stroke-[#F59E0B] stroke-2';
+    }
+    // Maintenance or Disabled: Neutral Gray
     if (b.operational_status === 'disabled' || b.operational_status === 'maintenance') {
-      return 'fill-[#F1F5F9] stroke-[#94A3B8] stroke-1.5'; // Gray: Unavailable
+      return 'fill-[#F1F5F9] stroke-[#94A3B8] stroke-1.5';
     }
-    return 'fill-[#DCFCE7] stroke-[#22C55E] stroke-2 hover:fill-[#BBF7D0]'; // Green: Available
+    // Available: Fresh Green
+    return 'fill-[#DCFCE7] stroke-[#22C55E] stroke-2 hover:fill-[#BBF7D0]';
   };
 
   return (
@@ -723,7 +734,19 @@ export default function FloorplanEditor({
                         dominantBaseline="middle"
                         fontSize={Math.max(10, Math.min(13, wPx / 4))}
                         fontWeight="bold"
-                        fill={isSelected ? '#ffffff' : (isBooked ? '#991B1B' : '#14532D')}
+                        fill={
+                          isSelected 
+                            ? '#ffffff' 
+                            : booth.id && bookingStatusMap[booth.id] === 'confirmed'
+                              ? '#DC2626'
+                              : booth.id && bookingStatusMap[booth.id] === 'pending'
+                                ? '#B45309'
+                                : isBooked
+                                  ? '#DC2626'
+                                  : (booth.operational_status === 'disabled' || booth.operational_status === 'maintenance')
+                                    ? '#64748B'
+                                    : '#15803D'
+                        }
                         className="pointer-events-none font-mono"
                       >
                         {booth.booth_number}

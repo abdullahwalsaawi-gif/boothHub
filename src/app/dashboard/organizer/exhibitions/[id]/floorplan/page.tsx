@@ -32,6 +32,7 @@ export default async function OrganizerFloorplanPage({
         initialHall={data.hall}
         initialBooths={data.booths}
         bookedBoothIds={data.bookedBoothIds}
+        bookingStatusMap={data.bookingStatusMap}
       />
     </div>
   );
